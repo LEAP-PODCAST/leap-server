@@ -15,6 +15,8 @@ global.mysql = require("mysql2").createConnection({
   port: Number(process.env.MYSQL_PORT)
 });
 
+require("./create_sql_tables.js")();
+
 // Create http server if not https
 let server;
 let io;
