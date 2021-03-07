@@ -70,10 +70,9 @@ module.exports = {
 
     // Set the max incoming bitrate (bps)
     try {
+      // Set max bitrate to 4500kbps
       // TODO use proper bitrate
-      await transport.setMaxIncomingBitrate(
-        SETTINGS.rooms.default.capture.video.maxBitrate * 1000
-      );
+      await transport.setMaxIncomingBitrate(4500 * 1000);
     } catch (err) {
       return {
         success: false,

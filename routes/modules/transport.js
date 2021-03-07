@@ -140,15 +140,7 @@ module.exports = ({ io }) => {
       async function(req, res) {
         const { producerOptions, type } = req.body;
 
-        // If type of stream producing is disabled
-        if (!SETTINGS.rooms.default.capture[type].enabled) {
-          return {
-            ok: false,
-            error: `You're not allowed to producer a ${type} stream in this room`
-          };
-        }
-
-        // If already producing stream type
+        // If user is already producing stream type
         if (req.room.users[req.socket.id].producerIds[type]) {
           return {
             ok: false,
@@ -157,13 +149,10 @@ module.exports = ({ io }) => {
         }
 
         // If max streams of type produced in room
-        if (
-          req.router.$streams[type].length >=
-          SETTINGS.rooms.default.capture[type].maxStreams
-        ) {
+        if (req.router.$streams[type].length >= 3) {
           return {
             ok: false,
-            error: `Max ${type} streams reached in room ${req.socket.roomId} of ${SETTINGS.rooms.default.capture[type].maxStreams}`
+            error: `Max ${type} streams reached in room ${req.socket.roomId} of 3`
           };
         }
 

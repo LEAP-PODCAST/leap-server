@@ -41,10 +41,10 @@ module.exports = ({ io }) => {
         req.socket.username = username;
         req.socket.key = crypto.randomBytes(16).toString("base64");
 
-        if (io.getSocketCount(roomId) >= SETTINGS.rooms.default.maxUsers) {
+        if (io.getSocketCount(roomId) >= 3) {
           return {
             ok: false,
-            error: `Max users of ${SETTINGS.rooms.default.maxUsers} in room ${roomId}`,
+            error: `Max users of 3 in room ${roomId}`,
             status: 400
           };
         }
@@ -116,13 +116,7 @@ module.exports = ({ io }) => {
           data: {
             routerRtpCapabilities,
             streams,
-            room: {
-              ...room,
-              SETTINGS: {
-                ...SETTINGS.rooms.default,
-                secret: undefined
-              }
-            },
+            room,
             key: req.socket.key
           }
         };
