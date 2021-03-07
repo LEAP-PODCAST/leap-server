@@ -4,6 +4,8 @@ const consola = require("consola");
 const Transport = require("../../mediasoup/transport.js");
 const Consumer = require("../../mediasoup/consumer.js");
 
+// TODO: verify these routes are from the owner
+
 module.exports = ({ io }) => {
   return {
     /**

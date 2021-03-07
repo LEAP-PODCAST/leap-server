@@ -28,46 +28,13 @@ module.exports = ({ io }) => {
       function(req, res) {
         const { text } = req.body;
 
+        // TODO change username to userId
         io.in(req.socket.roomId).emit("chat/message", {
           type: "message",
           text,
           username: req.socket.username,
           socketId: req.socket.id
         });
-
-        return { ok: true };
-      }
-    }),
-
-    username: new ExpressRoute({
-      type: "POST",
-
-      model: {
-        body: {
-          username: {
-            type: "string",
-            required: true,
-            maxLength: 16
-          }
-        }
-      },
-
-      middleware: [verifySocketId, verifyRoomId],
-
-      function(req, res) {
-        const { username } = req.body;
-
-        const oldUsername = req.socket.username;
-        req.socket.username = username;
-        req.room.users[req.socket.id].username = username;
-
-        io.in(req.socket.roomId).emit("chat/message", {
-          type: "action",
-          text: `${oldUsername} changed their name to ${username}`
-        });
-
-        // Update users array for all users
-        io.in(req.socket.roomId).emit("chat/users", req.room.users);
 
         return { ok: true };
       }

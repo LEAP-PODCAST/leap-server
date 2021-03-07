@@ -15,122 +15,6 @@ module.exports = ({ io }) => {
   const { verifySocketId, verifyRoomId } = require("../middleware.js")({ io });
 
   return {
-    video: new ExpressRoute({
-      type: "POST",
-
-      model: {
-        body: {
-          stream: {
-            type: "object",
-            required: true
-          }
-        }
-      },
-
-      middleware: [verifySocketId, verifyRoomId],
-
-      /**
-       * After producers have been created, this is called to add stream to room
-       * @param {object} stream Info about the stream, like producerIds
-       */
-      async function(req, res) {
-        let { stream } = req.body;
-
-        // If no video producer found in global producers map
-        if (!producers.has(stream.producerId)) {
-          return {
-            ok: false,
-            error: `No video producer found by id: ${stream.producerId}`
-          };
-        }
-
-        // If is streaming desktop audio
-        if (typeof stream.audio === "object") {
-          if (typeof stream.audio.producerId !== "string") {
-            return {
-              ok: false,
-              error: "No producerId provided for audio stream"
-            };
-          }
-
-          // If no audio producer found in global producers map
-          if (!producers.has(stream.audio.producerId)) {
-            return {
-              ok: false,
-              error: `No audio producer found by id: ${stream.audio.producerId}`
-            };
-          }
-        }
-
-        stream = {
-          ...stream,
-          startedAt: getLocalStamp()
-        };
-
-        const { video } = req.router.$streams;
-
-        // Check if client is already producing a video stream
-        /**
-         * The logic behind this code is if the streams array was ever
-         * saying that someone was streaming when they aren't, its better
-         * to override the stream than to throw an error. This also prevents
-         * users from streaming to the same playspace from multiple devices.
-         * If they do, it will just remove their old stream
-         */
-        for (let i = 0; i < video.length; i++) {
-          // If already producing
-          if (video[i].username === req.socket.username) {
-            // Close video producer
-            const { success, error } = await Producer.delete(
-              video[i].producerId
-            );
-
-            if (!success) {
-              return {
-                ok: false,
-                error
-              };
-            }
-
-            // Check if audio producer exits
-            if (video[i].audio && video[i].audio.producerId) {
-              // Close audio producer
-              const { success, error } = await Producer.delete(
-                video[i].audio.producerId
-              );
-
-              if (!success) {
-                return {
-                  ok: false,
-                  error
-                };
-              }
-            }
-
-            // Tell any consumers that producer has closed
-            io.in(req.socket.roomId).emit(
-              `produce/close/${video[i].producerId}`
-            );
-
-            // Remove old stream
-            req.router.$streams.video.splice(i, 1);
-
-            break;
-          }
-        }
-
-        // Add stream to
-        req.router.$streams.video.push(stream);
-
-        // Tell anyone in the room, that a new producer has started
-        req.socket.in(req.socket.roomId).emit("stream/video", stream);
-
-        return {
-          ok: true
-        };
-      }
-    }),
-
     webcam: new ExpressRoute({
       type: "POST",
 
@@ -156,7 +40,7 @@ module.exports = ({ io }) => {
         if (!producers.has(stream.producerId)) {
           return {
             ok: false,
-            error: `No video producer found by id: ${stream.producerId}`
+            error: `No webcam producer found by id: ${stream.producerId}`
           };
         }
 
@@ -172,7 +56,7 @@ module.exports = ({ io }) => {
          * The logic behind this code is if the streams array was ever
          * saying that someone was streaming when they aren't, its better
          * to override the stream than to throw an error. This also prevents
-         * users from streaming to the same playspace from multiple devices.
+         * users from streaming to the same room from multiple devices.
          * If they do, it will just remove their old stream
          */
         for (let i = 0; i < webcam.length; i++) {

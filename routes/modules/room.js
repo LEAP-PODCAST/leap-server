@@ -36,15 +36,19 @@ module.exports = ({ io }) => {
       async function(req, res) {
         const { roomId, username } = req.body;
 
+        // TODO verify roomID is in database as scheduled podcast or something similar
+
         // Get the roomId, used as an id in rooms and join socket room
         req.socket.roomId = roomId;
+        // TODO change this to userId in database
         req.socket.username = username;
         req.socket.key = crypto.randomBytes(16).toString("base64");
 
-        if (io.getSocketCount(roomId) >= 3) {
+        // TODO temporary limit on viewers / podcasts in a room
+        if (io.getSocketCount(roomId) >= 16) {
           return {
             ok: false,
-            error: `Max users of 3 in room ${roomId}`,
+            error: `Max users of 16 in room ${roomId}`,
             status: 400
           };
         }
@@ -71,10 +75,8 @@ module.exports = ({ io }) => {
         room.users[req.socket.id] = {
           username,
           producerIds: {
-            video: "",
             webcam: "",
-            mic: "",
-            audio: ""
+            mic: ""
           }
         };
 
@@ -83,23 +85,6 @@ module.exports = ({ io }) => {
 
         // Get the RTP capabilities of the router
         const routerRtpCapabilities = router.rtpCapabilities;
-
-        // Loop through all video players to calculate correct time
-        /**
-         * I wish I could do this calculation on the client side to also account for the time it takes for
-         * the request to reach the client, but timezones make this a fucking hellhole. So i'm going with KISS
-         */
-        streams.external.forEach((stream, i) => {
-          const { stamp, value } = stream.time;
-          if (stamp > -1) {
-            stream.time = value + getLocalStamp() - stamp;
-          } else {
-            stream.time = value;
-          }
-
-          // Set stream to isBuffering
-          stream.isBuffering = true;
-        });
 
         // Tell all clients that user has joined
         io.in(roomId).emit("chat/message", {

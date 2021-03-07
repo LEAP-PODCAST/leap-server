@@ -3,6 +3,8 @@ const ExpressRoute = require("../ExpressRoute.js");
 const Router = require("../../mediasoup/router");
 const Producer = require("../../mediasoup/producer");
 
+// TODO: verify these routes are from the owner
+
 module.exports = ({ io, socket }) => {
   const { verifySocketId } = require("../middleware")({ io });
 

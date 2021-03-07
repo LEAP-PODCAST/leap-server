@@ -49,10 +49,8 @@ module.exports = {
 
       // All video streams (Learn more in README.md in this folder)
       router.$streams = {
-        video: [],
         webcam: [],
-        mic: [],
-        external: []
+        mic: []
       };
 
       // Add router to global routers map
@@ -95,10 +93,10 @@ module.exports = {
     }
 
     // Get array of video and mic streams
-    const { video, webcam, mic } = router.$streams;
+    const { webcam, mic } = router.$streams;
 
     // Find stream in video array
-    const streams = { video, webcam, mic };
+    const streams = { webcam, mic };
     const find = e => e.producerId === producerId;
     let stream;
 
@@ -110,58 +108,6 @@ module.exports = {
         router.$streams[type].splice(i, 1);
         break;
       }
-    }
-
-    return { success: true };
-  },
-
-  /**
-   * Remove all streams by username
-   * @param {object} params
-   * @param {string} params.roomId The key for the router in global routers map
-   * @param {string} params.username Username of streamer
-   */
-  removeAllStreamsByUsername({ roomId, username }) {
-    const requirementError = errorBuilder.missingPropertyError(
-      {
-        roomId,
-        username
-      },
-      ["roomId", "username"]
-    );
-
-    if (requirementError) {
-      return {
-        success: false,
-        error: requirementError
-      };
-    }
-
-    // Get the router from the global map of routers
-    const router = routers.get(roomId);
-
-    if (!router) {
-      return {
-        success: false,
-        error: `No Router found by Room ID: ${roomId}`
-      };
-    }
-
-    // Get array of video and mic streams
-    const { video, mic } = router.$streams;
-
-    // Find stream in video array
-    const find = e => e.username === username;
-
-    const videoStream = video.find(find);
-    const micStream = mic.find(find);
-
-    if (videoStream) {
-      video.splice(video.indexOf(videoStream), 1);
-    }
-
-    if (micStream) {
-      mic.splice(mic.indexOf(micStream), 1);
     }
 
     return { success: true };

@@ -128,7 +128,7 @@ module.exports = ({ io }) => {
           type: {
             type: "string",
             validator: type => ({
-              isValid: ["video", "webcam", "mic", "audio"].includes(type),
+              isValid: ["webcam", "mic"].includes(type),
               error: "Stream type is invalid"
             })
           }
@@ -149,6 +149,7 @@ module.exports = ({ io }) => {
         }
 
         // If max streams of type produced in room
+        // TODO discuss the limit
         if (req.router.$streams[type].length >= 3) {
           return {
             ok: false,
@@ -172,29 +173,15 @@ module.exports = ({ io }) => {
         // Add this stream to stream types
         req.room.users[req.socket.id].producerIds[type] = producer.id;
 
-        // If stream to be published
-        if (type !== "audio") {
-          const stream = {
-            producerId: producer.id,
-            startedAt: getLocalStamp(),
-            isPaused: false,
-            socketId: req.socket.id
-          };
+        const stream = {
+          producerId: producer.id,
+          startedAt: getLocalStamp(),
+          isPaused: false,
+          socketId: req.socket.id
+        };
 
-          // If this is a video stream and there is an audio stream,
-          // Attach it to the stream object for consumption
-          const audioProducerId =
-            req.room.users[req.socket.id].producerIds.audio;
-
-          if (type === "video" && audioProducerId) {
-            stream.audio = {
-              producerId: audioProducerId
-            };
-          }
-
-          // Add stream to corresponding streams array
-          req.router.$streams[type].push(stream);
-        }
+        // Add stream to corresponding streams array
+        req.router.$streams[type].push(stream);
 
         // Respond to client with server producer id
         return {
@@ -218,7 +205,7 @@ module.exports = ({ io }) => {
           type: {
             type: "string",
             validator: type => ({
-              isValid: ["video", "webcam", "mic", "audio"].includes(type),
+              isValid: ["webcam", "mic"].includes(type),
               error: "Stream type is invalid"
             })
           }
