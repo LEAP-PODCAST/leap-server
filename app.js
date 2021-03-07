@@ -51,8 +51,6 @@ async function main() {
 
   await Worker.createWorkers();
 
-  createExpressApp();
-
   // Create http or https server depending on NODE_ENV
   if (process.env.NODE_ENV === "development") {
     server = http.createServer(app);
@@ -81,6 +79,9 @@ async function main() {
 
   // Attack Socket.IO to express server
   io = require("socket.io")(server);
+  createSocketApp();
+
+  createExpressApp();
 }
 
 function createExpressApp() {
@@ -88,7 +89,7 @@ function createExpressApp() {
 
   app.use(cors());
   app.use(bodyParser.urlencoded({ extended: true }));
-  app.use(bodyParser.json());
+  app.use(bodyParser.json({ extended: true }));
   app.use((req, res, next) => {
     // If API method
     if (/^\/api/.test(req.path)) {
