@@ -1,5 +1,7 @@
 # Leap Node.js Server
 
+This server handles real-time podcast video / audio relay, text chat, podcast pages, and anything else a normal API would do. The only thing it's not going to do is handle ffmpeg for video recording.
+
 ## Install
 
 Note: This only runs on UNIX systems like Linux. It cannot run natively on Windows currently. To run on Windows 10, you will need to install WSL (Windows Subsystem for Linux) from the Microsoft Store or another method.
