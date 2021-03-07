@@ -1,10 +1,8 @@
 {
   "sites": [
     {
-      "subject": "demo.doice.io",
-      "altnames": [
-        "demo.doice.io"
-      ],
+      "subject": "joinleap.co",
+      "altnames": ["joinleap.co"],
       "renewAt": 1
     }
   ],

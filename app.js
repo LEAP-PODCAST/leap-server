@@ -1,3 +1,4 @@
+require("dotenv").config();
 const fs = require("fs");
 const express = require("./express.js");
 const bodyParser = require("body-parser");
@@ -6,14 +7,17 @@ const app = express();
 const Worker = require("./mediasoup/worker");
 const http = require("http");
 const consola = require("consola");
-
-if (!fs.existsSync("settings.json")) {
-  fs.writeFileSync("settings.json", JSON.stringify({}))
-}
+global.mysql = require("mysql2").createConnection({
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
+  port: Number(process.env.MYSQL_PORT)
+});
 
 // Create http server if not https
-let server
-let io
+let server;
+let io;
 
 // All workers representing CPU vCores
 global.workers = [];
@@ -45,70 +49,38 @@ async function main() {
     });
   });
 
-  global.SETTINGS = {
-    ...JSON.parse(fs.readFileSync("template.settings.json")),
-    ...JSON.parse(fs.readFileSync("settings.json"))
-  };
-
   await Worker.createWorkers();
 
   createExpressApp();
 
-  if (!global.SETTINGS.server.is_initial_install) {
-    if (process.env.dev === "true") {
-      server = http.createServer(app);
+  // Create http or https server depending on NODE_ENV
+  if (process.env.NODE_ENV === "development") {
+    server = http.createServer(app);
 
-      server.listen(SETTINGS.server.port, () => {
-        consola.success(
-          `Doice server listening on ${global.SERVER_IP}:${SETTINGS.server.port}`
-        );
-      });
-
-      io = require("socket.io")(server);
-    } else {
-      server = require("greenlock-express").init({
+    server.listen(process.env.PORT, () => {
+      consola.success(
+        `Leap server listening on ${global.SERVER_IP}:${process.env.PORT}`
+      );
+    });
+  } else if (process.env.NODE_ENV === "production") {
+    server = require("greenlock-express")
+      .init({
         packageRoot: __dirname,
         configDir: "./greenlock.d",
         cluster: false,
-        maintainerEmail: global.SETTINGS.server.admin_email
-      }).serve(app)
-      
-      io = require("socket.io")(server);
-    }
+        maintainerEmail: "trystonmperry@gmail.com"
+      })
+      .serve(app);
 
-    createSocketApp();
-  } 
-  
-  else {
-    server = http.createServer(app);
-
-    app.post("/api/admin/init-setup", (req, res) => {
-      console.log(req.body)
-      fs.writeFileSync("settings.json", JSON.stringify({
-        server: {
-          port: 443,
-          domain_name: req.body.domainName,
-          admin_email: req.body.adminEmail,
-          is_initial_install: false
-        }
-      }))
-
-      fs.writeFileSync("greenlock.d/config.json", JSON.stringify({
-        sites: [
-          { subject: req.body.domainName, altnames: [req.body.domainName] }
-        ]
-      }))
-
-      server.close()
-      main()
-    })
-
-    server.listen(80, () => {
-      consola.success(
-        `Doice server listening on ${global.SERVER_IP}:80`
-      );
-    });
+    consola.success(`Leap server listening on ${global.SERVER_IP}`);
+  } else {
+    consola.error(
+      `${process.env.NODE_ENV} is not a valid NODE_ENV env variable`
+    );
   }
+
+  // Attack Socket.IO to express server
+  io = require("socket.io")(server);
 }
 
 function createExpressApp() {
@@ -117,17 +89,10 @@ function createExpressApp() {
   app.use(cors());
   app.use(bodyParser.urlencoded({ extended: true }));
   app.use(bodyParser.json());
-
   app.use((req, res, next) => {
     // If API method
     if (/^\/api/.test(req.path)) {
       next();
-      return;
-    }
-
-    // If not api method and server is in initial install
-    else if (global.SETTINGS.server.is_initial_install) {
-      res.sendFile(__dirname + "/initial-setup/index.html")
       return;
     }
 
@@ -143,11 +108,9 @@ function createExpressApp() {
     else {
       res.sendFile(`${__dirname}/public/index.html`);
     }
-  });
 
-  app.use(cors());
-  app.use(bodyParser.urlencoded({ extended: true }));
-  app.use(bodyParser.json());
+    next();
+  });
 
   // Generate routes from /routes/index.js and /rotues/modules
   require("./routes/index.js")({ app, io });

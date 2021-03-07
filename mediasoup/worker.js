@@ -7,7 +7,10 @@ mediasoup.observer.on("newworker", worker => {
   consola.info(`@newworker: [pid:${worker.pid}]`);
 });
 
-const numWorkers = Object.keys(os.cpus()).length;
+// One worker per CPU. Only use 1 worker aka 1 CPU for development
+// This is just here because we don't need tons of workers while developing (generally speaking)
+const numWorkers =
+  process.env.NODE_ENV === "production" ? Object.keys(os.cpus()).length : 1;
 let lastUsedWorkerIndex = -1;
 
 module.exports = {
@@ -18,7 +21,7 @@ module.exports = {
     consola.info("****CREATING MEDIASOUP WORKERS****");
     for (let i = 0; i < numWorkers; i++) {
       const worker = await mediasoup.createWorker({
-        logLevel: "debug",
+        logLevel: "debug"
       });
       workers.push(worker);
     }
