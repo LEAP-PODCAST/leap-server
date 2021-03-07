@@ -49,11 +49,14 @@ Verify this worked correctly by trying to access mysql with the new user account
 Enter the password 'password' when prompted
 
 Exit the MySQL terminal and head back to the .env file. Edit the MySQL server section to look like this:
+
+```
 MYSQL_HOST=127.0.0.1
 MYSQL_USER=demo_user
 MYSQL_PASSWORD=password
 MYSQL_DATABASE=leap_dev
 MYSQL_PORT=3306
+```
 
 **Please note that if on Windows using WSL, you may need to run `sudo service mysql start` every time you re-open linux terminal**
 
