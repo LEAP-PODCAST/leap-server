@@ -127,25 +127,6 @@ module.exports = async ({ io }) => {
 
       const router = routers.get(socket.roomId);
 
-      if (router) {
-        const { external } = router.$streams;
-        external.forEach(stream => {
-          // Check if video stream is only waiting on this client
-          if (stream.buffering.size === 1 && stream.buffering.has(socket.id)) {
-            // Update local stamp
-            stream.time.stamp = getLocalStamp();
-
-            // Tell all clients we are no longer buffering
-            io.in(socket.roomId).emit(`video/buffer/${stream.id}`, {
-              isBuffering: false
-            });
-          }
-
-          // Remove this client from buffering queue
-          stream.buffering.delete(socket.id);
-        });
-      }
-
       // Close the viewers transport
       await Transport.closeAll(socket.id);
 
