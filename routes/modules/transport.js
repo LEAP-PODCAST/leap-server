@@ -4,6 +4,7 @@ const consola = require("consola");
 const Transport = require("../../mediasoup/transport.js");
 
 const { getLocalStamp } = require("../../methods.js");
+const e = require("express");
 
 module.exports = ({ io }) => {
   const { verifySocketId, verifyRoomId } = require("../middleware.js")({ io });
@@ -229,8 +230,15 @@ module.exports = ({ io }) => {
           };
         }
 
-        // Tell all clients new stream to consume
-        req.socket.in(req.socket.roomId).emit(`stream/${type}`, stream);
+        // If Webcam stream, tell all clients including producer the stream was added
+        if (type === "webcam") {
+          io.in(req.socket.roomId).emit(`stream/${type}`, stream);
+        }
+
+        // If audio, tell everyone EXCEPT the producer. Producer does not need to hear themselves
+        else {
+          req.socket.in(req.socket.roomId).emit(`stream/${type}`, stream);
+        }
 
         // Update users array for all users
         io.in(req.socket.roomId).emit("chat/users", req.room.users);
