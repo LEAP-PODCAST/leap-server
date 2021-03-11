@@ -44,11 +44,14 @@ module.exports = async ({ app, io }) => {
         `/api/${routeGroup}/${eventKey}`,
         async (req, res) => {
           // Do validation on model
-          const valResult = validateParams(model.body, req.body);
+          const modelKeys = Object.keys(model);
+          for (const modelKey of modelKeys) {
+            const valResult = validateParams(model[modelKey], req[modelKey]);
 
-          if (!valResult.ok) {
-            res.error({}, valResult.error, 400);
-            return;
+            if (!valResult.ok) {
+              res.error({}, valResult.error, 400);
+              return;
+            }
           }
 
           // Run middleware validation
