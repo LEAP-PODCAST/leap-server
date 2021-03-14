@@ -1,8 +1,8 @@
 {
   "sites": [
     {
-      "subject": "staging.joinleap.co",
-      "altnames": ["staging.joinleap.co"],
+      "subject": "api.staging.joinleap.co",
+      "altnames": ["api.staging.joinleap.co"],
       "renewAt": 1
     }
   ],
