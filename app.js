@@ -111,8 +111,6 @@ function createExpressApp() {
     else {
       res.sendFile(`${__dirname}/public/index.html`);
     }
-
-    next();
   });
 
   // Generate routes from /routes/index.js and /rotues/modules
