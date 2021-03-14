@@ -7,7 +7,7 @@ module.exports = () => {
     lastName VARCHAR(20) NOT NULL,
     bio VARCHAR(128),
     socials TEXT,
-    createdAt DATE default(CURRENT_DATE)
+    createdAt TIMESTAMP NOT NULL DEFAULT NOW()
   )`);
 
   mysql.query(`CREATE TABLE IF NOT EXISTS user_accounts (
@@ -30,7 +30,7 @@ module.exports = () => {
   //   id INTEGER PRIMARY KEY AUTO_INCREMENT,
   //   text VARCHAR(256) NOT NULL,
   //   profileId INTEGER NOT NULL,
-  //   createdAt DATE default(CURRENT_DATE)
+  //   createdAt TIMESTAMP NOT NULL DEFAULT NOW()
   //   timestamp INTEGER
   // )`)
 
