@@ -138,8 +138,16 @@ module.exports = ({ io }) => {
         const userProfile = userProfiles[0];
 
         // Hash password with unique salt
-        const hash = password;
-        const salt = 10;
+        const salt = crypto.randomBytes(64).toString("base64").substr(0, 64);
+        const hash = await crypto
+          .pbkdf2Sync(
+            password,
+            salt,
+            Number(process.env.HASH_ITERATIONS),
+            64,
+            "sha256"
+          )
+          .toString();
 
         // Create a user account with profile id
         var [result] = await mysql.execute(
