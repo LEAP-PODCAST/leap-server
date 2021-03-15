@@ -7,15 +7,19 @@ const app = express();
 const Worker = require("./mediasoup/worker");
 const http = require("http");
 const consola = require("consola");
-global.mysql = require("mysql2").createConnection({
-  host: process.env.MYSQL_HOST,
-  user: process.env.MYSQL_USER,
-  password: process.env.MYSQL_PASSWORD,
-  database: process.env.MYSQL_DATABASE,
-  port: Number(process.env.MYSQL_PORT)
-});
 
-require("./create_sql_tables.js")();
+// Define MySQL tables
+(async () => {
+  global.mysql = await require("mysql2/promise").createConnection({
+    host: process.env.MYSQL_HOST,
+    user: process.env.MYSQL_USER,
+    password: process.env.MYSQL_PASSWORD,
+    database: process.env.MYSQL_DATABASE,
+    port: Number(process.env.MYSQL_PORT)
+  });
+
+  await require("./create_sql_tables.js")();
+})();
 
 // Create http server if not https
 let server;
