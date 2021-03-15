@@ -190,7 +190,8 @@ module.exports = ({ io }) => {
           userProfile,
           userAccount: {
             email: userAccount.email,
-            receiveNotifications: userAccount.receiveNotifications
+            receiveNotifications: userAccount.receiveNotifications,
+            salt: userAccount.salt
           },
           token: jwt.sign({ userAccount }, userAccount.salt, {
             expiresIn: "30d"
@@ -288,7 +289,8 @@ module.exports = ({ io }) => {
           userProfile,
           userAccount: {
             email: userAccount.email,
-            receiveNotifications: userAccount.receiveNotifications
+            receiveNotifications: userAccount.receiveNotifications,
+            salt: userAccount.salt
           },
           token: jwt.sign({ userAccount }, userAccount.salt, {
             expiresIn: "30d"

@@ -1,3 +1,5 @@
+const jwt = require("jsonwebtoken");
+
 module.exports = ({ io }) => ({
   /**
    * Check if socket-id id is present, and if a socket exits
@@ -70,5 +72,21 @@ module.exports = ({ io }) => ({
     req.room = room;
 
     return { ok: true };
+  },
+
+  /**
+   * Verify JWT token
+   * @param {Request} req
+   * @param {Response} res
+   */
+  verifyUserToken(req, res) {
+    try {
+      const token = req.headers.authorization;
+      const salt = req.headers.salt;
+      req.user = jwt.verify(token, salt);
+      return { ok: true };
+    } catch (err) {
+      return { error: "Authentication unsuccessful", status: 401 };
+    }
   }
 });
