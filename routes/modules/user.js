@@ -1,6 +1,7 @@
 const ExpressRoute = require("../ExpressRoute.js");
 const consola = require("consola");
 const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
 
 const regex = require("../../data/regex");
 
@@ -11,7 +12,8 @@ module.exports = ({ io }) => {
      * @param {string} username
      * @param {string} firstName
      * @param {string} lastName
-     * @param {string} email
+     * @param {string} email,
+     * @param {string} password
      * @param {boolean} receiveNotifications
      */
     signUp: new ExpressRoute({
@@ -185,12 +187,25 @@ module.exports = ({ io }) => {
         const userAccount = userAccounts[0];
         console.log(userProfile, userAccount);
 
-        // Some sort of JTW
+        const data = {
+          userProfile,
+          userAccount: {
+            email: userAccount.email,
+            receiveNotifications: userAccount.receiveNotifications
+          },
+          token: jwt.sign({ userAccount }, userAccount.salt, {
+            expiresIn: "30d"
+          })
+        };
+
+        if (!data.token.length) {
+          return { error: "Could not create Bearer token", status: 500 };
+        }
 
         // Respond with user account information including auth token
         return {
           ok: true,
-          data: {}
+          data
         };
       }
     })
