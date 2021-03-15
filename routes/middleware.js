@@ -70,36 +70,5 @@ module.exports = ({ io }) => ({
     req.room = room;
 
     return { ok: true };
-  },
-
-  /**
-   * Check if a video stream exists by id
-   * @param {Request} req
-   * @param {Response} res
-   */
-  verifyVideoId(req, res) {
-    const { id } = req.body;
-
-    if (!req.router) {
-      return {
-        ok: false,
-        error: `No router attached to Request object. You must verifyRoomId before verifyVideoId`
-      };
-    }
-
-    // Find stream by id in room
-    const find = e => e.id === id && e.type === "video";
-    const stream = req.router.$streams.external.find(find);
-
-    if (!stream) {
-      return {
-        ok: false,
-        error: `No stream found by id ${id} in room ${req.socket.roomId}`
-      };
-    }
-
-    req.stream = stream;
-
-    return { ok: true };
   }
 });
