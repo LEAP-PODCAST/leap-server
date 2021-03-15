@@ -185,8 +185,105 @@ module.exports = ({ io }) => {
         }
 
         const userAccount = userAccounts[0];
-        console.log(userProfile, userAccount);
 
+        const data = {
+          userProfile,
+          userAccount: {
+            email: userAccount.email,
+            receiveNotifications: userAccount.receiveNotifications
+          },
+          token: jwt.sign({ userAccount }, userAccount.salt, {
+            expiresIn: "30d"
+          })
+        };
+
+        if (!data.token.length) {
+          return { error: "Could not create Bearer token", status: 500 };
+        }
+
+        // Respond with user account information including auth token
+        return {
+          ok: true,
+          data
+        };
+      }
+    }),
+
+    /**
+     * Log in to an existing user account
+     * @param {string} email,
+     * @param {string} password
+     */
+    logIn: new ExpressRoute({
+      type: "POST",
+
+      model: {
+        body: {
+          email: {
+            type: "string",
+            required: true,
+            maxLength: 32
+          },
+          password: {
+            type: "string",
+            required: true,
+            maxLength: 64
+          }
+        }
+      },
+
+      middleware: [],
+
+      async function(req, res) {
+        const { email, password } = req.body;
+
+        const lowerEmail = email.toLowerCase();
+
+        // Check if a user account exists with this email
+        const [
+          userAccounts
+        ] = await mysql.execute(
+          "SELECT * FROM user_accounts WHERE email = ? LIMIT 1",
+          [lowerEmail]
+        );
+        if (!userAccounts.length) {
+          return { error: "Incorrect login details", status: 400 };
+        }
+
+        const userAccount = userAccounts[0];
+
+        // Check if hashed password = stored hashed password
+        const hash = await crypto
+          .pbkdf2Sync(
+            password,
+            userAccount.salt,
+            Number(process.env.HASH_ITERATIONS),
+            64,
+            "sha256"
+          )
+          .toString();
+
+        if (hash !== userAccount.password) {
+          return { error: "Incorrect login details", status: 400 };
+        }
+
+        // Get user profile by profileId
+        const [
+          userProfiles
+        ] = await mysql.execute(
+          "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
+          [userAccount.profileId]
+        );
+        if (!userProfiles.length) {
+          return {
+            error: `No user profile by id ${userAccount.profileId} associated with user account`,
+            status: 500
+          };
+        }
+
+        const userProfile = userProfiles[0];
+
+        // Create JWT auth token
         const data = {
           userProfile,
           userAccount: {
