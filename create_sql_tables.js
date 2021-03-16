@@ -1,7 +1,4 @@
 module.exports = async () => {
-  await mysql.execute("DROP TABLE IF EXISTS user_profiles");
-  await mysql.execute("DROP TABLE IF EXISTS user_accounts");
-
   await mysql.execute(`CREATE TABLE IF NOT EXISTS user_profiles (
     id INTEGER PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(20) UNIQUE NOT NULL,
