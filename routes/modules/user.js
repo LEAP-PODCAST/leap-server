@@ -193,7 +193,7 @@ module.exports = ({ io }) => {
             receiveNotifications: userAccount.receiveNotifications,
             salt: userAccount.salt
           },
-          token: jwt.sign({ userAccount }, userAccount.salt, {
+          token: jwt.sign({ userAccount }, req.ip, {
             expiresIn: "30d"
           })
         };
@@ -292,7 +292,7 @@ module.exports = ({ io }) => {
             receiveNotifications: userAccount.receiveNotifications,
             salt: userAccount.salt
           },
-          token: jwt.sign({ userAccount }, userAccount.salt, {
+          token: jwt.sign({ userAccount }, req.ip, {
             expiresIn: "30d"
           })
         };

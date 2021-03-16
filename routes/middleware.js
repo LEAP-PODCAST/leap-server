@@ -82,10 +82,10 @@ module.exports = ({ io }) => ({
   verifyUserToken(req, res) {
     try {
       const token = req.headers.authorization;
-      const salt = req.headers.salt;
-      req.user = jwt.verify(token, salt);
+      req.user = jwt.verify(token, req.ip);
       return { ok: true };
     } catch (err) {
+      console.error(err);
       return { error: "Authentication unsuccessful", status: 401 };
     }
   }

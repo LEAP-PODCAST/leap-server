@@ -69,16 +69,24 @@ module.exports = {
       if (typeof param === "undefined" && property.required) {
         return {
           ok: false,
-          error: `${key} is required, but was not provided.`,
+          error: `${key} is required, but was not provided.`
         };
       }
 
       // If incorrect type
-      if (typeof param !== property.type) {
+      if (property.type === "array") {
+        if (!(param instanceof Array)) {
+          return {
+            ok: false,
+            error: `${key} was not an array, when it was supposed to be type array`
+          };
+        }
+      } else if (typeof param !== property.type) {
         return {
           ok: false,
-          error: `${key} was type ${typeof param}, 
-              when it was supposed to be type ${property.type}`,
+          error: `${key} was type ${typeof param}, when it was supposed to be type ${
+            property.type
+          }`
         };
       }
 
@@ -90,7 +98,7 @@ module.exports = {
         ) {
           return {
             ok: false,
-            error: `${key} is longer than max length of ${property.maxLength}`,
+            error: `${key} is longer than max length of ${property.maxLength}`
           };
         }
       }
@@ -105,5 +113,5 @@ module.exports = {
     }
 
     return { ok: true };
-  },
+  }
 };
