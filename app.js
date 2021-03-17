@@ -18,6 +18,16 @@ const consola = require("consola");
     port: Number(process.env.MYSQL_PORT)
   });
 
+  global.mysql.exec = async (query, params) => {
+    try {
+      const res = await global.mysql.execute(query, params);
+      return res;
+    } catch (err) {
+      // TODO error logging service
+      consola.error(err);
+    }
+  };
+
   await require("./create_sql_tables.js")();
 })();
 

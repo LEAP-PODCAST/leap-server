@@ -1,5 +1,5 @@
 module.exports = async () => {
-  await mysql.execute(`CREATE TABLE IF NOT EXISTS user_profiles (
+  await mysql.exec(`CREATE TABLE IF NOT EXISTS user_profiles (
     id INTEGER PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(20) UNIQUE NOT NULL,
     fullUsername VARCHAR(20) NOT NULL,
@@ -11,7 +11,7 @@ module.exports = async () => {
     createdAt TIMESTAMP NOT NULL DEFAULT NOW()
   )`);
 
-  await mysql.execute(`CREATE TABLE IF NOT EXISTS user_accounts (
+  await mysql.exec(`CREATE TABLE IF NOT EXISTS user_accounts (
     profileId INTEGER PRIMARY KEY NOT NULL,
     email VARCHAR(32) UNIQUE NOT NULL,
     password VARCHAR(64) NOT NULL,
@@ -19,8 +19,9 @@ module.exports = async () => {
     receiveNotifications BOOLEAN NOT NULL
   )`);
 
-  await mysql.execute(`CREATE TABLE IF NOT EXISTS podcasts (
-    name VARCHAR(64) PRIMARY KEY NOT NULL,
+  await mysql.exec(`CREATE TABLE IF NOT EXISTS podcasts (
+    id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(64) UNIQUE NOT NULL,
     iconUrl TEXT,
     hosts TEXT
   )`);
@@ -29,7 +30,7 @@ module.exports = async () => {
 
   // TODO for each podcast create a seperate table for the corresponding comments
 
-  // await mysql.execute(`CREATE TABLE IF NOT EXISTS comments (
+  // await mysql.exec(`CREATE TABLE IF NOT EXISTS comments (
   //   id INTEGER PRIMARY KEY AUTO_INCREMENT,
   //   text VARCHAR(256) NOT NULL,
   //   profileId INTEGER NOT NULL,
@@ -37,14 +38,17 @@ module.exports = async () => {
   //   timestamp INTEGER
   // )`)
 
-  await mysql.execute(`CREATE TABLE IF NOT EXISTS scheduled_podcast (
+  await mysql.exec(`CREATE TABLE IF NOT EXISTS scheduled_podcast (
     id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    podcastId INTEGER UNIQUE NOT NULL,
     name VARCHAR(64) NOT NULL,
     screenshotUrl TEXT,
     hosts TEXT,
     guests TEXT,
     description VARCHAR(1024),
     visibility TINYINT,
+    startTime BIGINT NOT NULL,
+    endTime BIGINT NOT NULL,
     timeToAlert SMALLINT
   )`);
 };

@@ -115,9 +115,9 @@ module.exports = ({ io }) => ({
     }
 
     // Check if that podcast exists
-    const [
-      podcasts
-    ] = await mysql.execute("SELECT * FROM podcasts WHERE id = ?", [podcastId]);
+    const [podcasts] = await mysql.exec("SELECT * FROM podcasts WHERE id = ?", [
+      podcastId
+    ]);
     if (!podcasts.length) {
       return { error: "No podcast found by that id", status: 400 };
     }

@@ -65,6 +65,11 @@ module.exports = {
       const property = model[key];
       const param = params[key];
 
+      // If param is not provided and not required
+      if (typeof param === "undefined" && !property.required) {
+        return { ok: true };
+      }
+
       // If param is not provded
       if (typeof param === "undefined" && property.required) {
         return {

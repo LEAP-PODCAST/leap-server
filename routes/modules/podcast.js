@@ -52,7 +52,7 @@ module.exports = ({ io }) => {
 
           const [
             selectedHosts
-          ] = await mysql.execute(
+          ] = await mysql.exec(
             "SELECT id FROM user_profiles WHERE id = ? LIMIT 1",
             [host]
           );
@@ -67,10 +67,9 @@ module.exports = ({ io }) => {
         // Check if podcast with name already exists
         const [
           podcasts
-        ] = await mysql.execute(
-          "SELECT * FROM podcasts WHERE name = ? LIMIT 1",
-          [name]
-        );
+        ] = await mysql.exec("SELECT * FROM podcasts WHERE name = ? LIMIT 1", [
+          name
+        ]);
         if (podcasts.length) {
           return {
             error: `A podcast with the name ${name} already exists`,
@@ -79,7 +78,7 @@ module.exports = ({ io }) => {
         }
 
         // Create the podcast
-        const [result] = await mysql.execute(
+        const [result] = await mysql.exec(
           `INSERT INTO podcasts (
           name, hosts
         ) VALUES (?, ?)`,
@@ -93,7 +92,7 @@ module.exports = ({ io }) => {
         }
 
         // TODO (waiting for recording support) Create table for episodes
-        // await mysql.execute(`CREATE TABLE IF NOT EXISTS podcast_${result.insertId}_episodes (
+        // await mysql.exec(`CREATE TABLE IF NOT EXISTS podcast_${result.insertId}_episodes (
         //   id INTEGER PRIMARY KEY AUTO_INCREMENT,
 
         // )`)
@@ -109,6 +108,35 @@ module.exports = ({ io }) => {
             hosts
           }
         };
+      }
+    }),
+
+    /**
+     * Get all podcasts
+     */
+    getAll: new ExpressRoute({
+      type: "GET",
+
+      model: {
+        query: {
+          startingId: {
+            type: "number"
+          }
+        }
+      },
+
+      middleware: [],
+
+      async function(req, res) {
+        const startingId = req.query.startingId || 1;
+
+        const [
+          podcasts
+        ] = await mysql.exec("SELECT * FROM podcasts WHERE id >= ? LIMIT 100", [
+          startingId
+        ]);
+
+        return { ok: true, data: podcasts };
       }
     }),
 
@@ -141,11 +169,11 @@ module.exports = ({ io }) => {
             required: true
           },
           startTime: {
-            type: "date",
+            type: "string",
             required: true
           },
           endTime: {
-            type: "date",
+            type: "string",
             required: true
           },
           hosts: {
@@ -186,7 +214,89 @@ module.exports = ({ io }) => {
           visibility
         } = req.body;
 
-        // Check if
+        // Check if hosts and guests exist in database
+        for (const user of [...hosts, ...guests]) {
+          const [
+            userProfiles
+          ] = await mysql.exec(
+            "SELECT * FROM user_profiles WHERE profileId = ? LIMIT 1",
+            [user]
+          );
+          if (!userProfiles.length) {
+            return { error: `No user found by id ${user}`, status: 400 };
+          }
+        }
+
+        // Verify startTime and endTime are ahead of eachother
+        const startDate = new Date(startTime);
+        const endDate = new Date(endTime);
+        if (startDate == "Invalid Date" || endDate == "Invalid Date") {
+          return {
+            error: "Start time or end time were invalid dates",
+            error: 400
+          };
+        }
+
+        if (startDate > endDate) {
+          return {
+            error: "Start date needs to be before the end date",
+            status: 400
+          };
+        }
+
+        // Add to the db
+        const [result] = await mysql.exec(
+          `INSERT INTO scheduled_podcasts (
+          podcastId,
+          name,
+          screenshotUrl,
+          hosts,
+          guests,
+          description,
+          visibility,
+          startTime,
+          endTime,
+          timeToAlert
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            podcastId,
+            name,
+            "",
+            hosts.toString(),
+            guests.toString(),
+            description,
+            visibility,
+            startTime.getTime(),
+            endTime.getTime(),
+            timeToAlert
+          ]
+        );
+
+        if (!result || typeof result.insertId !== "number") {
+          return {
+            error: "An error occurred while scheduling your podcast",
+            status: 500
+          };
+        }
+
+        // Select the newly created podcast
+        const [podcasts] = await mysql.exec(
+          "SELECT * FROM scheduled_podcasts WHERE id = ? LIMIT 1,"[
+            result.insertId
+          ]
+        );
+        if (!podcasts.length) {
+          return {
+            error:
+              "Somehow the podcast was created but not found in the database",
+            status: 500
+          };
+        }
+
+        return {
+          ok: true,
+          data: podcasts[0]
+        };
       }
     })
   };

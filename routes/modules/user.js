@@ -87,7 +87,7 @@ module.exports = ({ io }) => {
         // Verify that the username is not taken
         var [
           users
-        ] = await mysql.execute(
+        ] = await mysql.exec(
           "SELECT id FROM user_profiles WHERE username = ? LIMIT 1",
           [lowerUsername]
         );
@@ -98,7 +98,7 @@ module.exports = ({ io }) => {
         // Verify that the email is not taken
         var [
           users
-        ] = await mysql.execute(
+        ] = await mysql.exec(
           "SELECT profileId FROM user_accounts WHERE email = ? LIMIT 1",
           [lowerEmail]
         );
@@ -107,7 +107,7 @@ module.exports = ({ io }) => {
         }
 
         // Create a user profile
-        var [result] = await mysql.execute(
+        var [result] = await mysql.exec(
           `INSERT INTO user_profiles (
           username,
           fullUsername,
@@ -125,7 +125,7 @@ module.exports = ({ io }) => {
 
         const [
           userProfiles
-        ] = await mysql.execute(
+        ] = await mysql.exec(
           "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
           [result.insertId]
         );
@@ -152,7 +152,7 @@ module.exports = ({ io }) => {
           .toString();
 
         // Create a user account with profile id
-        var [result] = await mysql.execute(
+        var [result] = await mysql.exec(
           `INSERT INTO user_accounts (
           profileId,
           email,
@@ -172,7 +172,7 @@ module.exports = ({ io }) => {
 
         const [
           userAccounts
-        ] = await mysql.execute(
+        ] = await mysql.exec(
           "SELECT * FROM user_accounts WHERE profileId = ? LIMIT 1",
           [userProfile.id]
         );
@@ -243,7 +243,7 @@ module.exports = ({ io }) => {
         // Check if a user account exists with this email
         const [
           userAccounts
-        ] = await mysql.execute(
+        ] = await mysql.exec(
           "SELECT * FROM user_accounts WHERE email = ? LIMIT 1",
           [lowerEmail]
         );
@@ -271,7 +271,7 @@ module.exports = ({ io }) => {
         // Get user profile by profileId
         const [
           userProfiles
-        ] = await mysql.execute(
+        ] = await mysql.exec(
           "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
           [userAccount.profileId]
         );
