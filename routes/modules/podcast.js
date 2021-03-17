@@ -143,12 +143,14 @@ module.exports = ({ io }) => {
     /**
      * Schedule a new podcast episode
      * @param {string} name
+     * @param {number} podcastId
      * @param {date} startTime
      * @param {date} endTime
      * @param {array} hosts
      * @param {array} guests
      * @param {string} description
      * @param {string} visibility
+     * @param {number} timeToAlert Time in minutes before start time to send alerts to hosts and co-hosts that scheduled podcast will begin at startTime
      */
     createScheduledEpisode: new ExpressRoute({
       type: "POST",
@@ -178,7 +180,11 @@ module.exports = ({ io }) => {
           },
           hosts: {
             type: "array",
-            required: true
+            required: true,
+            validator: hosts => ({
+              isValid: hosts.length > 0,
+              error: "To schedule a podcast you must add at least 1 host"
+            })
           },
           guests: {
             type: "array",
@@ -193,9 +199,13 @@ module.exports = ({ io }) => {
             type: "string",
             required: true,
             validator: visibility => ({
-              isValid: ["private", "public"].contains(visibility),
+              isValid: ["private", "public"].includes(visibility),
               error: `${visibility} is not a valid type of visibility`
             })
+          },
+          timeToAlert: {
+            type: "number",
+            required: true
           }
         }
       },
@@ -211,15 +221,17 @@ module.exports = ({ io }) => {
           hosts,
           guests,
           description,
-          visibility
+          visibility,
+          timeToAlert
         } = req.body;
 
         // Check if hosts and guests exist in database
         for (const user of [...hosts, ...guests]) {
+          console.log(user);
           const [
             userProfiles
           ] = await mysql.exec(
-            "SELECT * FROM user_profiles WHERE profileId = ? LIMIT 1",
+            "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
             [user]
           );
           if (!userProfiles.length) {
@@ -246,7 +258,7 @@ module.exports = ({ io }) => {
 
         // Add to the db
         const [result] = await mysql.exec(
-          `INSERT INTO scheduled_podcasts (
+          `INSERT INTO scheduled_podcast (
           podcastId,
           name,
           screenshotUrl,
@@ -266,13 +278,14 @@ module.exports = ({ io }) => {
             guests.toString(),
             description,
             visibility,
-            startTime.getTime(),
-            endTime.getTime(),
+            startDate.getTime(),
+            endDate.getTime(),
             timeToAlert
           ]
         );
 
         if (!result || typeof result.insertId !== "number") {
+          console.log(result);
           return {
             error: "An error occurred while scheduling your podcast",
             status: 500
@@ -280,10 +293,11 @@ module.exports = ({ io }) => {
         }
 
         // Select the newly created podcast
-        const [podcasts] = await mysql.exec(
-          "SELECT * FROM scheduled_podcasts WHERE id = ? LIMIT 1,"[
-            result.insertId
-          ]
+        const [
+          podcasts
+        ] = await mysql.exec(
+          "SELECT * FROM scheduled_podcasts WHERE id = ? LIMIT 1,",
+          [result.insertId]
         );
         if (!podcasts.length) {
           return {

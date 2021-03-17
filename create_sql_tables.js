@@ -40,7 +40,7 @@ module.exports = async () => {
 
   await mysql.exec(`CREATE TABLE IF NOT EXISTS scheduled_podcast (
     id INTEGER PRIMARY KEY AUTO_INCREMENT,
-    podcastId INTEGER UNIQUE NOT NULL,
+    podcastId INTEGER NOT NULL,
     name VARCHAR(64) NOT NULL,
     screenshotUrl TEXT,
     hosts TEXT,
