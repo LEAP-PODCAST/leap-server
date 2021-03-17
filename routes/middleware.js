@@ -88,5 +88,50 @@ module.exports = ({ io }) => ({
       console.error(err);
       return { error: "Authentication unsuccessful", status: 401 };
     }
+  },
+
+  /**
+   * Verify the user is a host of the podcast
+   * @param {Request} req
+   * @param {Response} res
+   */
+  async verifyUserIsHostOfPodcast(req, res) {
+    // Check if user object is attached to request
+    const { user } = req;
+    if (!user) {
+      return {
+        error: "User object not attached to request object",
+        status: 500
+      };
+    }
+
+    const { podcastId } = req.body;
+    if (!podcastId) {
+      return {
+        error:
+          "Well, how am I supposed to check if you are a part of the podcast if you don't give me the podcastId?",
+        status: 400
+      };
+    }
+
+    // Check if that podcast exists
+    const [
+      podcasts
+    ] = await mysql.execute("SELECT * FROM podcasts WHERE id = ?", [podcastId]);
+    if (!podcasts.length) {
+      return { error: "No podcast found by that id", status: 400 };
+    }
+
+    const podcast = podcasts[0];
+    const hosts = podcast.hosts.split(",");
+
+    // Check if the user is a host in that podcast
+    if (!hosts.contains(`${podcastId}`)) {
+      return { error: "You are not a host of this podcast", status: 400 };
+    }
+
+    req.podcast = podcast;
+
+    return { ok: true };
   }
 });
