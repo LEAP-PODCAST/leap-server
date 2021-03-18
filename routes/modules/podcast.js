@@ -35,7 +35,6 @@ module.exports = ({ io }) => {
 
       async function(req, res) {
         const { name, hosts } = req.body;
-        console.log(name, hosts);
 
         // Verify hosts are legit hosts
         for (const host of hosts) {
@@ -215,7 +214,6 @@ module.exports = ({ io }) => {
 
         // Check if hosts and guests exist in database
         for (const user of [...hosts, ...guests]) {
-          console.log(user);
           const [
             userProfiles
           ] = await mysql.exec(
