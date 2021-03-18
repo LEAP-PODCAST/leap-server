@@ -22,11 +22,7 @@ module.exports = ({ io }) => {
           name: {
             type: "string",
             required: true,
-            maxLength: 64,
-            validator: name => ({
-              isValid: regex.nameWithSpaces.test(name),
-              error: "That podcast name cannot be used"
-            })
+            maxLength: 64
           },
           hosts: {
             type: "array",
@@ -143,8 +139,10 @@ module.exports = ({ io }) => {
     /**
      * Schedule a new podcast episode
      * @param {string} name
+     * @param {number} podcastId
      * @param {date} startTime
      * @param {date} endTime
+     * @param {number} timeToAlert
      * @param {array} hosts
      * @param {array} guests
      * @param {string} description
@@ -158,11 +156,7 @@ module.exports = ({ io }) => {
           name: {
             type: "string",
             required: true,
-            maxLength: 64,
-            validator: name => ({
-              isValid: regex.nameWithSpaces.test(name),
-              error: "That podcast name cannot be used"
-            })
+            maxLength: 64
           },
           podcastId: {
             type: "number",
@@ -174,6 +168,10 @@ module.exports = ({ io }) => {
           },
           endTime: {
             type: "string",
+            required: true
+          },
+          timeToAlert: {
+            type: "number",
             required: true
           },
           hosts: {
@@ -190,10 +188,10 @@ module.exports = ({ io }) => {
             maxLength: 1024
           },
           visibility: {
-            type: "string",
+            type: "number",
             required: true,
             validator: visibility => ({
-              isValid: ["private", "public"].contains(visibility),
+              isValid: visibility >= 0 && visibility <= 1,
               error: `${visibility} is not a valid type of visibility`
             })
           }
@@ -208,6 +206,7 @@ module.exports = ({ io }) => {
           podcastId,
           startTime,
           endTime,
+          timeToAlert,
           hosts,
           guests,
           description,
@@ -216,10 +215,11 @@ module.exports = ({ io }) => {
 
         // Check if hosts and guests exist in database
         for (const user of [...hosts, ...guests]) {
+          console.log(user);
           const [
             userProfiles
           ] = await mysql.exec(
-            "SELECT * FROM user_profiles WHERE profileId = ? LIMIT 1",
+            "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
             [user]
           );
           if (!userProfiles.length) {
@@ -246,18 +246,18 @@ module.exports = ({ io }) => {
 
         // Add to the db
         const [result] = await mysql.exec(
-          `INSERT INTO scheduled_podcasts (
-          podcastId,
-          name,
-          screenshotUrl,
-          hosts,
-          guests,
-          description,
-          visibility,
-          startTime,
-          endTime,
-          timeToAlert
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO scheduled_podcast (
+            podcastId,
+            name,
+            screenshotUrl,
+            hosts,
+            guests,
+            description,
+            visibility,
+            startTime,
+            endTime,
+            timeToAlert
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             podcastId,
             name,
@@ -266,8 +266,8 @@ module.exports = ({ io }) => {
             guests.toString(),
             description,
             visibility,
-            startTime.getTime(),
-            endTime.getTime(),
+            startDate.getTime(),
+            endDate.getTime(),
             timeToAlert
           ]
         );
@@ -280,10 +280,11 @@ module.exports = ({ io }) => {
         }
 
         // Select the newly created podcast
-        const [podcasts] = await mysql.exec(
-          "SELECT * FROM scheduled_podcasts WHERE id = ? LIMIT 1,"[
-            result.insertId
-          ]
+        const [
+          podcasts
+        ] = await mysql.exec(
+          "SELECT * FROM scheduled_podcast WHERE id = ? LIMIT 1",
+          [result.insertId]
         );
         if (!podcasts.length) {
           return {
