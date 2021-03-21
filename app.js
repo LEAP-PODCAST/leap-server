@@ -25,6 +25,7 @@ const consola = require("consola");
     } catch (err) {
       // TODO error logging service
       consola.error(err);
+      return [[], []];
     }
   };
 

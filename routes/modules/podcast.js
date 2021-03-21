@@ -266,7 +266,7 @@ module.exports = ({ io }) => {
             visibility,
             startDate.getTime(),
             endDate.getTime(),
-            timeToAlert
+            "asdsad"
           ]
         );
 
