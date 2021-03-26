@@ -141,7 +141,6 @@ module.exports = ({ io }) => {
      * @param {number} podcastId
      * @param {date} startTime
      * @param {date} endTime
-     * @param {number} timeToAlert
      * @param {array} hosts
      * @param {array} guests
      * @param {string} description
@@ -168,10 +167,6 @@ module.exports = ({ io }) => {
           },
           endTime: {
             type: "string",
-            required: true
-          },
-          timeToAlert: {
-            type: "number",
             required: true
           },
           hosts: {
@@ -218,8 +213,7 @@ module.exports = ({ io }) => {
           hosts,
           guests,
           description,
-          visibility,
-          timeToAlert
+          visibility
         } = req.body;
 
         // Check if hosts and guests exist in database
