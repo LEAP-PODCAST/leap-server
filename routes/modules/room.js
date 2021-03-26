@@ -8,7 +8,9 @@ const Router = require("../../mediasoup/router.js");
 const { getLocalStamp } = require("../../methods.js");
 
 module.exports = ({ io }) => {
-  const { verifySocketId } = require("../middleware.js")({ io });
+  const { verifySocketId, verifyUserToken } = require("../middleware.js")({
+    io
+  });
 
   return {
     /**
@@ -23,26 +25,38 @@ module.exports = ({ io }) => {
           roomId: {
             type: "string",
             required: true
-          },
-          username: {
-            type: "string",
-            required: true
           }
         }
       },
 
-      middleware: [verifySocketId],
+      middleware: [verifySocketId, verifyUserToken],
 
       async function(req, res) {
-        const { roomId, username } = req.body;
+        const { roomId } = req.body;
 
         // TODO verify roomID is in database as scheduled podcast or something similar
 
         // Get the roomId, used as an id in rooms and join socket room
         req.socket.roomId = roomId;
-        // TODO change this to userId in database
+        req.socket.key = req.ip;
+
+        // Get the username from the userProfile with profileId
+        const [
+          userProfiles
+        ] = await mysql.exec(
+          `SELECT id FROM user_profiles WHERE id = ? LIMIT 1`,
+          [req.user.userAccount.profileId]
+        );
+        if (!userProfiles.length) {
+          return {
+            error: `Couldn't find a user profile by id ${req.user.userAccount.profileId}`,
+            status: 500
+          };
+        }
+
+        const userProfile = userProfiles[0];
+        const { username } = userProfile;
         req.socket.username = username;
-        req.socket.key = crypto.randomBytes(16).toString("base64");
 
         // TODO temporary limit on viewers / podcasts in a room
         if (io.getSocketCount(roomId) >= 16) {
@@ -73,6 +87,7 @@ module.exports = ({ io }) => {
         // Join the Socket.IO room
         req.socket.join(roomId);
         room.users[req.socket.id] = {
+          id: userProfile.id,
           username,
           producerIds: {
             webcam: "",

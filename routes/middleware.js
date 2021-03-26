@@ -83,6 +83,7 @@ module.exports = ({ io }) => ({
     try {
       const token = req.headers.authorization;
       req.user = jwt.verify(token, req.ip);
+      console.log(req.user);
       return { ok: true };
     } catch (err) {
       console.error(err);
