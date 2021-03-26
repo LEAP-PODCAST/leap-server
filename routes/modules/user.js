@@ -6,6 +6,8 @@ const jwt = require("jsonwebtoken");
 const regex = require("../../data/regex");
 
 module.exports = ({ io }) => {
+  const { verifyUserToken } = require("../middleware")({ io });
+
   return {
     /**
      * Create a new user account and user profile
@@ -305,6 +307,44 @@ module.exports = ({ io }) => {
         return {
           ok: true,
           data
+        };
+      }
+    }),
+
+    /**
+     * Verify user token is still valid (usually used when user comes back to app intially)
+     */
+    verifyUserToken: new ExpressRoute({
+      type: "POST",
+
+      model: {},
+
+      middleware: [verifyUserToken],
+
+      async function(req, res) {
+        const id = req.user.userAccount.profileId;
+
+        const [
+          userProfiles
+        ] = await mysql.exec(
+          "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
+          [id]
+        );
+        if (!userProfiles.length) {
+          return { error: `No user profile found by id ${id}`, status: 500 };
+        }
+
+        return {
+          ok: true,
+          data: {
+            userProfile: userProfiles[0],
+            userAccount: {
+              email: req.user.userAccount.email,
+              receiveNotifications: req.user.userAccount.receiveNotifications,
+              salt: req.user.userAccount.salt
+            },
+            token: req.headers.authorization
+          }
         };
       }
     })
