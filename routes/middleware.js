@@ -82,8 +82,14 @@ module.exports = ({ io }) => ({
   verifyUserToken(req, res) {
     try {
       const token = req.headers.authorization;
-      req.user = jwt.verify(token, req.ip);
-      console.log(req.user);
+      if (!token) {
+        return { error: "No authorization header present", status: 401 };
+      }
+      const deviceId = req.headers["device-id"];
+      if (!deviceId) {
+        return { error: "No device-id header present", status: 401 };
+      }
+      req.user = jwt.verify(token, deviceId);
       return { ok: true };
     } catch (err) {
       console.error(err);

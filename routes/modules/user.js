@@ -68,6 +68,13 @@ module.exports = ({ io }) => {
             type: "boolean",
             required: true
           }
+        },
+        headers: {
+          "device-id": {
+            type: "string",
+            required: true,
+            maxLength: 16
+          }
         }
       },
 
@@ -195,7 +202,7 @@ module.exports = ({ io }) => {
             receiveNotifications: userAccount.receiveNotifications,
             salt: userAccount.salt
           },
-          token: jwt.sign({ userAccount }, req.ip, {
+          token: jwt.sign({ userAccount }, req.headers["device-id"], {
             expiresIn: "30d"
           })
         };
@@ -231,6 +238,13 @@ module.exports = ({ io }) => {
             type: "string",
             required: true,
             maxLength: 64
+          }
+        },
+        headers: {
+          "device-id": {
+            type: "string",
+            required: true,
+            maxLength: 16
           }
         }
       },
@@ -294,7 +308,7 @@ module.exports = ({ io }) => {
             receiveNotifications: userAccount.receiveNotifications,
             salt: userAccount.salt
           },
-          token: jwt.sign({ userAccount }, req.ip, {
+          token: jwt.sign({ userAccount }, req.headers["device-id"], {
             expiresIn: "30d"
           })
         };
