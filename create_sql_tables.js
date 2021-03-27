@@ -8,6 +8,7 @@ module.exports = async () => {
     lastName VARCHAR(20) NOT NULL,
     bio VARCHAR(128),
     socials TEXT,
+    podcasts TEXT,
     createdAt TIMESTAMP NOT NULL DEFAULT NOW()
   )`);
 

@@ -29,6 +29,19 @@ const consola = require("consola");
     }
   };
 
+  global.mysql.getUserProfile = async (query, params) => {
+    const res = await global.mysql.exec(query, params);
+    for (let i = 0; i < res[0].length; i++) {
+      const p = res[0][i];
+      !p.socials
+        ? (p.socials = [])
+        : (p.socials = p.socials.split(",").map(v => parseInt(v)));
+      !p.podcasts
+        ? (p.podcasts = [])
+        : (p.podcasts = p.podcasts.split(",").map(v => parseInt(v)));
+    }
+  };
+
   await require("./create_sql_tables.js")();
 })();
 
