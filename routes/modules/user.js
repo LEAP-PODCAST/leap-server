@@ -96,7 +96,7 @@ module.exports = ({ io }) => {
         // Verify that the username is not taken
         var [
           users
-        ] = await mysql.exec(
+        ] = await mysql.getUserProfiles(
           "SELECT id FROM user_profiles WHERE username = ? LIMIT 1",
           [lowerUsername]
         );
@@ -134,7 +134,7 @@ module.exports = ({ io }) => {
 
         const [
           userProfiles
-        ] = await mysql.exec(
+        ] = await mysql.getUserProfiles(
           "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
           [result.insertId]
         );
@@ -287,7 +287,7 @@ module.exports = ({ io }) => {
         // Get user profile by profileId
         const [
           userProfiles
-        ] = await mysql.exec(
+        ] = await mysql.getUserProfiles(
           "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
           [userAccount.profileId]
         );
@@ -340,7 +340,7 @@ module.exports = ({ io }) => {
 
         const [
           userProfiles
-        ] = await mysql.exec(
+        ] = await mysql.getUserProfiles(
           "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
           [id]
         );

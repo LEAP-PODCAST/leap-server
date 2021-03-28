@@ -29,7 +29,7 @@ const consola = require("consola");
     }
   };
 
-  global.mysql.getUserProfile = async (query, params) => {
+  global.mysql.getUserProfiles = async (query, params) => {
     const res = await global.mysql.exec(query, params);
     for (let i = 0; i < res[0].length; i++) {
       const p = res[0][i];
@@ -40,6 +40,7 @@ const consola = require("consola");
         ? (p.podcasts = [])
         : (p.podcasts = p.podcasts.split(",").map(v => parseInt(v)));
     }
+    return res;
   };
 
   await require("./create_sql_tables.js")();
