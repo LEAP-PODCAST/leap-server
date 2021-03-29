@@ -44,7 +44,7 @@ module.exports = ({ io }) => {
           if (typeof host !== "string") {
             return {
               error: `One of the hosts, ${host}, was not type string`,
-              error: 400
+              status: 400
             };
           }
 
@@ -62,7 +62,7 @@ module.exports = ({ io }) => {
           }
 
           hostProfiles.push(selectedHosts[0]);
-          hostIds.push(selectedHosts.id);
+          hostIds.push(selectedHosts[0].id);
         }
 
         // Check if podcast with name already exists
@@ -124,7 +124,7 @@ module.exports = ({ io }) => {
           data: {
             id: result.insertId,
             name,
-            hosts
+            hostIds
           }
         };
       }
@@ -165,7 +165,6 @@ module.exports = ({ io }) => {
      * @param {number} podcastId
      * @param {date} startTime
      * @param {date} endTime
-     * @param {array} hosts
      * @param {array} guests
      * @param {string} description
      * @param {string} visibility
@@ -192,14 +191,6 @@ module.exports = ({ io }) => {
           endTime: {
             type: "string",
             required: true
-          },
-          hosts: {
-            type: "array",
-            required: true,
-            validator: hosts => ({
-              isValid: hosts.length > 0,
-              error: "To schedule a podcast you must add at least 1 host"
-            })
           },
           guests: {
             type: "array",
@@ -234,24 +225,26 @@ module.exports = ({ io }) => {
           startTime,
           endTime,
           timeToAlert,
-          hosts,
           guests,
           description,
           visibility
         } = req.body;
 
+        const guestIds = [];
+
         // Check if hosts and guests exist in database
-        for (const user of [...hosts, ...guests]) {
-          console.log(user);
+        for (const guest of guests) {
           const [
             userProfiles
           ] = await mysql.exec(
             "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
-            [user]
+            [guest]
           );
           if (!userProfiles.length) {
-            return { error: `No user found by id ${user}`, status: 400 };
+            return { error: `No user found by username ${guest}`, status: 400 };
           }
+
+          guestIds.push(userProfiles[0].id);
         }
 
         // Verify startTime and endTime are ahead of eachother
@@ -260,13 +253,26 @@ module.exports = ({ io }) => {
         if (startDate == "Invalid Date" || endDate == "Invalid Date") {
           return {
             error: "Start time or end time were invalid dates",
-            error: 400
+            status: 400
           };
         }
 
         if (startDate > endDate) {
           return {
             error: "Start date needs to be before the end date",
+            status: 400
+          };
+        }
+
+        // Get hosts from podcast in db
+        const [
+          podcasts
+        ] = await mysql.exec("SELECT * FROM podcasts WHERE id = ? LIMIT 1", [
+          podcastId
+        ]);
+        if (!podcasts.length) {
+          return {
+            error: `No podcast found by podcast id ${podcastId}`,
             status: 400
           };
         }
@@ -289,7 +295,7 @@ module.exports = ({ io }) => {
             podcastId,
             name,
             "",
-            hosts.toString(),
+            podcasts[0].hosts,
             guests.toString(),
             description,
             visibility,
@@ -300,7 +306,6 @@ module.exports = ({ io }) => {
         );
 
         if (!result || typeof result.insertId !== "number") {
-          console.log(result);
           return {
             error: "An error occurred while scheduling your podcast",
             status: 500
@@ -309,12 +314,12 @@ module.exports = ({ io }) => {
 
         // Select the newly created podcast
         const [
-          podcasts
+          episodes
         ] = await mysql.exec(
           "SELECT * FROM scheduled_podcast WHERE id = ? LIMIT 1",
           [result.insertId]
         );
-        if (!podcasts.length) {
+        if (!episodes.length) {
           return {
             error:
               "Somehow the podcast was created but not found in the database",
@@ -324,7 +329,7 @@ module.exports = ({ io }) => {
 
         return {
           ok: true,
-          data: podcasts[0]
+          data: episodes[0]
         };
       }
     })

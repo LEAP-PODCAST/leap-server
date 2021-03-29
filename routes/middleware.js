@@ -133,7 +133,7 @@ module.exports = ({ io }) => ({
     const hosts = podcast.hosts.split(",");
 
     // Check if the user is a host in that podcast
-    if (!hosts.includes(`${podcastId}`)) {
+    if (!hosts.includes(`${user.userAccount.profileId}`)) {
       return { error: "You are not a host of this podcast", status: 400 };
     }
 
