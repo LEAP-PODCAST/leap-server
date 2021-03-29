@@ -36,19 +36,22 @@ module.exports = ({ io }) => {
       async function(req, res) {
         const { name, hosts } = req.body;
 
+        const hostIds = [];
+        const hostProfiles = [];
+
         // Verify hosts are legit hosts
         for (const host of hosts) {
-          if (typeof host !== "number") {
+          if (typeof host !== "string") {
             return {
-              error: `One of the hosts, ${host}, was not type number`,
+              error: `One of the hosts, ${host}, was not type string`,
               error: 400
             };
           }
 
           const [
             selectedHosts
-          ] = await mysql.exec(
-            "SELECT id FROM user_profiles WHERE id = ? LIMIT 1",
+          ] = await mysql.getUserProfiles(
+            "SELECT * FROM user_profiles WHERE username = ? LIMIT 1",
             [host]
           );
           if (!selectedHosts.length) {
@@ -57,6 +60,9 @@ module.exports = ({ io }) => {
               status: 400
             };
           }
+
+          hostProfiles.push(selectedHosts[0]);
+          hostIds.push(selectedHosts.id);
         }
 
         // Check if podcast with name already exists
@@ -77,13 +83,31 @@ module.exports = ({ io }) => {
           `INSERT INTO podcasts (
           name, hosts
         ) VALUES (?, ?)`,
-          [name, hosts.toString()]
+          [name, hostIds.toString()]
         );
         if (!result || typeof result.insertId !== "number") {
           return {
             error: "An error occurred creating this podcast",
             status: 500
           };
+        }
+
+        // Add podcast to hosts podcasts array
+        for (const hostProfile of hostProfiles) {
+          hostProfile.podcasts.push(result.insertId);
+
+          const [
+            result2
+          ] = await mysql.exec(
+            `UPDATE user_profiles SET podcasts = ? WHERE id = ?`,
+            [hostProfile.podcasts.toString(), hostProfile.id]
+          );
+          if (!result2) {
+            return {
+              error: "An error occurred adding this podcast to host user",
+              status: 500
+            };
+          }
         }
 
         // TODO (waiting for recording support) Create table for episodes
