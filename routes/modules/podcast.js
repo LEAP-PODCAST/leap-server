@@ -40,23 +40,16 @@ module.exports = ({ io }) => {
         const hostProfiles = [];
 
         // Verify hosts are legit hosts
-        for (const host of hosts) {
-          if (typeof host !== "string") {
-            return {
-              error: `One of the hosts, ${host}, was not type string`,
-              status: 400
-            };
-          }
-
+        for (const host of hosts.filter(hosts => hosts.type === "user")) {
           const [
             selectedHosts
           ] = await mysql.getUserProfiles(
             "SELECT * FROM user_profiles WHERE username = ? LIMIT 1",
-            [host]
+            [host.username]
           );
           if (!selectedHosts.length) {
             return {
-              error: `One of the hosts, ${host}, was not found in the database`,
+              error: `One of the hosts, ${host.fullUsername}, was not found in the database`,
               status: 400
             };
           }
@@ -64,6 +57,8 @@ module.exports = ({ io }) => {
           hostProfiles.push(selectedHosts[0]);
           hostIds.push(selectedHosts[0].id);
         }
+
+        // TODO add invited hosts to podcast
 
         // Check if podcast with name already exists
         const [
@@ -233,19 +228,24 @@ module.exports = ({ io }) => {
         const guestIds = [];
 
         // Check if hosts and guests exist in database
-        for (const guest of guests) {
+        for (const guest of guests.filter(guest => guest.type === "user")) {
           const [
             userProfiles
           ] = await mysql.exec(
             "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
-            [guest]
+            [guest.id]
           );
           if (!userProfiles.length) {
-            return { error: `No user found by username ${guest}`, status: 400 };
+            return {
+              error: `No user found by username ${guest.fullUsername}`,
+              status: 400
+            };
           }
 
           guestIds.push(userProfiles[0].id);
         }
+
+        // TODO handle guest email types
 
         // Verify startTime and endTime are ahead of eachother
         const startDate = new Date(startTime);

@@ -34,7 +34,7 @@ module.exports = ({ io }) => {
         const [
           userProfiles
         ] = await mysql.exec(
-          "SELECT username, fullUsername avatarUrl, id FROM user_profiles WHERE username LIKE ? LIMIT 10",
+          "SELECT username, fullUsername, avatarUrl, id FROM user_profiles WHERE username LIKE ? LIMIT 10",
           [`%${username.toLowerCase()}%`]
         );
 
