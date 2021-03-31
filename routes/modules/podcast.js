@@ -58,6 +58,8 @@ module.exports = ({ io }) => {
           hostIds.push(selectedHosts[0].id);
         }
 
+        console.log("HOstIDS ", hostIds);
+
         // TODO add invited hosts to podcast
 
         // Check if podcast with name already exists
@@ -330,6 +332,43 @@ module.exports = ({ io }) => {
         return {
           ok: true,
           data: episodes[0]
+        };
+      }
+    }),
+
+    /**
+     * Get all scheduled podcasts by req.user
+     */
+    getAllScheduledEpisodes: new ExpressRoute({
+      type: "GET",
+
+      model: {},
+
+      middleware: [verifyUserToken],
+
+      async function(req, res) {
+        const id = req.user.userAccount.profileId;
+
+        const [
+          userProfiles
+        ] = await mysql.getUserProfiles(
+          "SELECT podcasts FROM user_profiles WHERE id = ? LIMIT 1",
+          [id]
+        );
+        if (!userProfiles.length) {
+          return { error: `No user profile found by id ${id}`, status: 500 };
+        }
+
+        const podcastIds = userProfiles[0].podcasts.map(p => p.id);
+
+        const [episodes] = await mysql.exec(
+          "SELECT * FROM scheduled_podcast WHERE podcastId IN (?)",
+          podcastIds
+        );
+
+        return {
+          ok: true,
+          data: episodes
         };
       }
     })

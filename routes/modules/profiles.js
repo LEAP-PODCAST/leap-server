@@ -3,11 +3,6 @@ const consola = require("consola");
 const regex = require("../../data/regex");
 
 module.exports = ({ io }) => {
-  const {
-    verifyUserToken,
-    verifyUserIsHostOfPodcast
-  } = require("../middleware")({ io });
-
   return {
     /**
      * Create a new user account and user profile

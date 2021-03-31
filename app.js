@@ -41,7 +41,6 @@ const consola = require("consola");
         : (p.podcasts = p.podcasts.split(",").map(v => parseInt(v)));
 
       if (p.podcasts.length) {
-        console.log();
         const [podcasts] = await mysql.exec(
           "SELECT * FROM podcasts WHERE `id` IN (?)",
           p.podcasts
