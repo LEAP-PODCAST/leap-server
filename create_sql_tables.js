@@ -23,6 +23,7 @@ module.exports = async () => {
   await mysql.exec(`CREATE TABLE IF NOT EXISTS podcasts (
     id INTEGER PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(64) UNIQUE NOT NULL,
+    urlName VARCHAR(64) UNIQUE NOT NULL,
     iconUrl TEXT,
     hosts TEXT
   )`);
@@ -43,6 +44,7 @@ module.exports = async () => {
     id INTEGER PRIMARY KEY AUTO_INCREMENT,
     podcastId INTEGER NOT NULL,
     name VARCHAR(64) NOT NULL,
+    urlName VARCHAR(64) UNIQUE NOT NULL,
     screenshotUrl TEXT,
     hosts TEXT,
     guests TEXT,

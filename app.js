@@ -19,6 +19,9 @@ global.workers = [];
 // All routers representing rooms
 global.routers = new Map();
 
+// All live episodes
+global.liveEpisodes = new Map();
+
 // All rooms
 global.rooms = new Map();
 

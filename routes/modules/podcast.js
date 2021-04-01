@@ -107,11 +107,27 @@ module.exports = ({ io }) => {
           }
         }
 
-        // TODO (waiting for recording support) Create table for episodes
-        // await mysql.exec(`CREATE TABLE IF NOT EXISTS podcast_${result.insertId}_episodes (
-        //   id INTEGER PRIMARY KEY AUTO_INCREMENT,
+        // Create table for episodes
+        const [
+          result2
+        ] = await mysql.exec(`CREATE TABLE IF NOT EXISTS podcast_${result.insertId}_episodes (
+          id INTEGER PRIMARY KEY AUTO_INCREMENT,
+          podcastId INTEGER NOT NULL,
+          name VARCHAR(64) NOT NULL,
+          urlName VARCHAR(64) UNIQUE NOT NULL,
+          hosts TEXT,
+          guests TEXT,
+          description VARCHAR(1024),
+          visibility TINYINT,
+          startTime INTEGER NOT NULL,
+          isLive BOOL NOT NULL
+        )`);
 
-        // )`)
+        if (!result2) {
+          consola.error(
+            "There was an error creating the podcast_episodes table"
+          );
+        }
 
         // TODO (waiting for recording and clip support) Create table for clips
 
