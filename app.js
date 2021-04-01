@@ -7,6 +7,32 @@ const app = express();
 const Worker = require("./mediasoup/worker");
 const http = require("http");
 const consola = require("consola");
+const { runAtEveryMSInterval } = require("./methods");
+
+// Create http server if not https
+let server;
+let io;
+
+// All workers representing CPU vCores
+global.workers = [];
+
+// All routers representing rooms
+global.routers = new Map();
+
+// All rooms
+global.rooms = new Map();
+
+// All transports representing streamer sending data
+global.sendTransports = new Map();
+
+// All transports representing viewer receiving data
+global.recvTransports = new Map();
+
+// All producers
+global.producers = new Map();
+
+// All consumers
+global.consumers = new Map();
 
 // Define MySQL tables
 (async () => {
@@ -52,32 +78,42 @@ const consola = require("consola");
   };
 
   await require("./create_sql_tables.js")();
+
+  const runScheduledCheckOnScheduledEpisodes = async () => {
+    const [
+      episodes
+    ] = await mysql.exec(
+      "SELECT * FROM scheduled_podcast WHERE startTime <= ?",
+      [Date.now()]
+    );
+
+    if (episodes.length) {
+      for (const episode of episodes) {
+        // If scheduled episode timeToAlert
+        if (episode.startTime - episode.timeToAlert * 1000 * 60 >= Date.now()) {
+          // Email / notify users that episode is to begin in X amount of minutes
+        }
+
+        // If episode is still scheduled but over 24 hours late, remove it from the DB
+        if (episode.startTime + 1000 * 60 * 60 * 24 >= Date.now()) {
+          const [
+            result
+          ] = await mysql.exec("DELETE FROM scheduled_podcast WHERE id = ?", [
+            episode.id
+          ]);
+
+          if (!result) {
+            consola.error(
+              `Failed to delete scheduled episode id: ${episode.id}`
+            );
+          }
+        }
+      }
+    }
+  };
+  // Check scheduled episodes every 1 minute
+  runAtEveryMSInterval(runScheduledCheckOnScheduledEpisodes, 1000 * 60);
 })();
-
-// Create http server if not https
-let server;
-let io;
-
-// All workers representing CPU vCores
-global.workers = [];
-
-// All routers representing rooms
-global.routers = new Map();
-
-// All Doice rooms
-global.rooms = new Map();
-
-// All transports representing streamer sending data
-global.sendTransports = new Map();
-
-// All transports representing viewer receiving data
-global.recvTransports = new Map();
-
-// All producers
-global.producers = new Map();
-
-// All consumers
-global.consumers = new Map();
 
 main();
 
