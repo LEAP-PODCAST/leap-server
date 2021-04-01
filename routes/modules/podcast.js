@@ -1,10 +1,13 @@
 const ExpressRoute = require("../ExpressRoute.js");
 const consola = require("consola");
 const regex = require("../../data/regex");
+const { sanitizeNameForURL } = require("../../methods");
+const { default: consolaGlobalInstance } = require("consola");
 
 module.exports = ({ io }) => {
   const {
     verifyUserToken,
+    verifyPodcastExists,
     verifyUserIsHostOfPodcast
   } = require("../middleware")({ io });
 
@@ -58,8 +61,6 @@ module.exports = ({ io }) => {
           hostIds.push(selectedHosts[0].id);
         }
 
-        console.log("HOstIDS ", hostIds);
-
         // TODO add invited hosts to podcast
 
         // Check if podcast with name already exists
@@ -78,9 +79,9 @@ module.exports = ({ io }) => {
         // Create the podcast
         const [result] = await mysql.exec(
           `INSERT INTO podcasts (
-          name, hosts
-        ) VALUES (?, ?)`,
-          [name, hostIds.toString()]
+          name, urlName, hosts
+        ) VALUES (?, ?, ?)`,
+          [name, sanitizeNameForURL(name), hostIds.toString()]
         );
         if (!result || typeof result.insertId !== "number") {
           return {
@@ -91,6 +92,7 @@ module.exports = ({ io }) => {
 
         // Add podcast to hosts podcasts array
         for (const hostProfile of hostProfiles) {
+          console.log(hostProfile);
           hostProfile.podcasts.push(result.insertId);
 
           const [
@@ -229,7 +231,11 @@ module.exports = ({ io }) => {
         }
       },
 
-      middleware: [verifyUserToken, verifyUserIsHostOfPodcast],
+      middleware: [
+        verifyUserToken,
+        verifyPodcastExists,
+        verifyUserIsHostOfPodcast
+      ],
 
       async function(req, res) {
         const {
@@ -295,11 +301,14 @@ module.exports = ({ io }) => {
           };
         }
 
+        console.log(name);
+
         // Add to the db
         const [result] = await mysql.exec(
           `INSERT INTO scheduled_podcast (
             podcastId,
             name,
+            urlName,
             screenshotUrl,
             hosts,
             guests,
@@ -308,10 +317,11 @@ module.exports = ({ io }) => {
             startTime,
             endTime,
             timeToAlert
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             podcastId,
             name,
+            sanitizeNameForURL(name),
             "",
             podcasts[0].hosts,
             guests.toString(),
@@ -375,7 +385,11 @@ module.exports = ({ io }) => {
           return { error: `No user profile found by id ${id}`, status: 500 };
         }
 
+        // If user has no podcasts
         const podcastIds = userProfiles[0].podcasts.map(p => p.id);
+        if (!podcastIds.length) {
+          return { ok: true, data: [] };
+        }
 
         const [episodes] = await mysql.exec(
           "SELECT * FROM scheduled_podcast WHERE podcastId IN (?)",

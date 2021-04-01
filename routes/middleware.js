@@ -98,13 +98,45 @@ module.exports = ({ io }) => ({
   },
 
   /**
+   * Verify the episode exists in the database
+   * @param {Request} req
+   * @param {Response} res
+   */
+  async verifyPodcastExists(req, res) {
+    const { podcastId } = req.body;
+
+    if (!podcastId) {
+      return { error: "No podcast provided", status: 400 };
+    }
+
+    const [
+      podcasts
+    ] = await mysql.getPodcasts("SELECT * FROM podcasts WHERE id = ?", [
+      podcastId
+    ]);
+    if (!podcasts.length) {
+      return { error: "No podcast found by that id", status: 400 };
+    }
+
+    req.podcast = podcasts[0];
+
+    return { ok: true };
+  },
+
+  /**
    * Verify podcast exists and user is host of it
    * @param {Request} req
    * @param {Response} res
    */
   async verifyUserIsHostOfPodcast(req, res) {
     // Check if user object is attached to request
-    const { user } = req;
+    const { podcast, user } = req;
+    if (!podcast) {
+      return {
+        error: "Podcast object not attached to request object",
+        status: 500
+      };
+    }
     if (!user) {
       return {
         error: "User object not attached to request object",
@@ -112,31 +144,10 @@ module.exports = ({ io }) => ({
       };
     }
 
-    const { podcastId } = req.body;
-    if (!podcastId) {
-      return {
-        error: "No podcastId provided",
-        status: 400
-      };
-    }
-
-    // Check if that podcast exists
-    const [podcasts] = await mysql.exec("SELECT * FROM podcasts WHERE id = ?", [
-      podcastId
-    ]);
-    if (!podcasts.length) {
-      return { error: "No podcast found by that id", status: 400 };
-    }
-
-    const podcast = podcasts[0];
-    const hosts = podcast.hosts.split(",");
-
     // Check if the user is a host in that podcast
-    if (!hosts.includes(`${user.userAccount.profileId}`)) {
+    if (!podcast.hosts.includes(user.userAccount.profileId)) {
       return { error: "You are not a host of this podcast", status: 400 };
     }
-
-    req.podcast = podcast;
 
     return { ok: true };
   },
@@ -145,7 +156,6 @@ module.exports = ({ io }) => ({
    * Verify the episode exists in the database
    * @param {Request} req
    * @param {Response} res
-   * @returns
    */
   async verifyEpisodeExists(req, res) {
     const { episodeId } = req.body;

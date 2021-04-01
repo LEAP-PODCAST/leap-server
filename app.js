@@ -80,6 +80,25 @@ global.consumers = new Map();
     return res;
   };
 
+  global.mysql.getPodcasts = async (query, params) => {
+    const res = await global.mysql.exec(query, params);
+    for (let i = 0; i < res[0].length; i++) {
+      const p = res[0][i];
+      !p.hosts
+        ? (p.hosts = [])
+        : (p.hosts = p.hosts.split(",").map(v => parseInt(v)));
+
+      if (p.hosts.length) {
+        const [hosts] = await mysql.exec(
+          "SELECT * FROM user_profiles WHERE `id` IN (?)",
+          p.hosts
+        );
+        p.hosts = hosts;
+      }
+    }
+    return res;
+  };
+
   await require("./create_sql_tables.js")();
 
   const runScheduledCheckOnScheduledEpisodes = async () => {

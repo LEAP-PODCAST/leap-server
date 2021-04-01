@@ -17,5 +17,9 @@ module.exports = {
       var delay = ms - (now % ms);
       setTimeout(loop, delay);
     })();
+  },
+
+  sanitizeNameForURL(str) {
+    return str.replace(" ", "-");
   }
 };
