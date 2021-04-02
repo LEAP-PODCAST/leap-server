@@ -144,8 +144,10 @@ module.exports = ({ io }) => ({
       };
     }
 
+    console.log(podcast.hosts, user.userAccount.profileId);
+
     // Check if the user is a host in that podcast
-    if (!podcast.hosts.includes(user.userAccount.profileId)) {
+    if (!podcast.hosts.find(({ id }) => id === user.userAccount.profileId)) {
       return { error: "You are not a host of this podcast", status: 400 };
     }
 

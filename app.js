@@ -102,12 +102,7 @@ global.consumers = new Map();
   await require("./create_sql_tables.js")();
 
   const runScheduledCheckOnScheduledEpisodes = async () => {
-    const [
-      episodes
-    ] = await mysql.exec(
-      "SELECT * FROM scheduled_podcast WHERE startTime <= ?",
-      [Date.now()]
-    );
+    const [episodes] = await mysql.exec("SELECT * FROM scheduled_podcast");
 
     if (episodes.length) {
       for (const episode of episodes) {
@@ -117,7 +112,8 @@ global.consumers = new Map();
         }
 
         // If episode is still scheduled but over 24 hours late, remove it from the DB
-        if (episode.startTime + 1000 * 60 * 60 * 24 >= Date.now()) {
+        const _24hours = 1000 * 60 * 60 * 24;
+        if (episode.startTime <= Date.now() + _24hours) {
           const [
             result
           ] = await mysql.exec("DELETE FROM scheduled_podcast WHERE id = ?", [
