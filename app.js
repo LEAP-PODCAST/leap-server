@@ -88,6 +88,8 @@ global.consumers = new Map();
         ? (p.hosts = [])
         : (p.hosts = p.hosts.split(",").map(v => parseInt(v)));
 
+      console.log(p.hosts);
+
       if (p.hosts.length) {
         const [hosts] = await mysql.exec(
           "SELECT * FROM user_profiles WHERE `id` IN (?)",

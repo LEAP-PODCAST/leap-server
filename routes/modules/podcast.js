@@ -95,6 +95,8 @@ module.exports = ({ io }) => {
           };
         }
 
+        console.log(hostIds.toString());
+
         // Create the podcast
         const [result] = await mysql.exec(
           `INSERT INTO podcasts (

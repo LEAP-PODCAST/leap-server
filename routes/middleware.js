@@ -91,9 +91,7 @@ module.exports = ({ io }) => ({
       return { error: "No podcastId provided", status: 400 };
     }
 
-    const [
-      podcasts
-    ] = await mysql.getPodcasts("SELECT * FROM podcasts WHERE id = ?", [
+    const [podcasts] = await mysql.exec("SELECT * FROM podcasts WHERE id = ?", [
       podcastId
     ]);
     if (!podcasts.length) {
@@ -126,8 +124,14 @@ module.exports = ({ io }) => ({
       };
     }
 
+    console.log(podcast);
+
     // Check if the user is a host in that podcast
-    if (!podcast.hosts.find(({ id }) => id === user.userAccount.profileId)) {
+    if (
+      !podcast.hosts
+        .split(",")
+        .find(hostId => hostId == user.userAccount.profileId)
+    ) {
       return { error: "You are not a host of this podcast", status: 400 };
     }
 
