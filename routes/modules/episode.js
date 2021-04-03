@@ -84,7 +84,7 @@ module.exports = ({ io }) => {
             episode.guests,
             episode.description,
             episode.visibility,
-            episode.startTime,
+            0,
             true
           ]
         );
@@ -97,7 +97,13 @@ module.exports = ({ io }) => {
 
         // TODO notify everyone that episode is starting
 
-        return { ok: true };
+        return {
+          ok: true,
+          data: {
+            podcast,
+            episode
+          }
+        };
       }
     }),
 
@@ -122,59 +128,45 @@ module.exports = ({ io }) => {
         }
       },
 
-      middleware: [verifySocketId, verifyUserToken],
+      middleware: [verifySocketId],
 
       async function(req, res) {
         const { podcastUrlName, episodeUrlName } = req.body;
 
-        // Get podcast and episode and verify they exist
+        const roomId = `episode/${episodeUrlName}`;
+
+        // Get podcast and episode
         const [
           podcasts
-        ] = await mysql.exec(
-          "SELECT * FROM podcasts WHERE urlName = ? LIMIT 1",
-          [podcastUrlName]
-        );
+        ] = await mysql.exec("SELECT * FROM podcasts WHERE urlName = ?", [
+          podcastUrlName
+        ]);
         if (!podcasts.length) {
           return {
-            error: `No podcast by urlName ${podcastUrlName} found`,
+            error: "No podcast found by that urlName",
             status: 400
           };
         }
+
+        const podcast = podcasts[0];
 
         const [
           episodes
         ] = await mysql.exec(
-          "SELECT * FROM scheduled_podcast WHERE urlName = ? LIMIT 1",
+          `SELECT * FROM podcast_${podcast.id}_episodes WHERE urlName = ?`,
           [episodeUrlName]
         );
         if (!episodes.length) {
           return {
-            error: `No podcast episode by urlName ${episodeUrlName} found`,
+            error: "No episode found by that urlName",
             status: 400
           };
         }
 
-        const podcast =
-          // Get the roomId, used as an id in rooms and join socket room
-          (req.socket.roomId = req.socket.key = req.ip);
+        const episode = episodes[0];
 
-        // Get the username from the userProfile with profileId
-        const [
-          userProfiles
-        ] = await mysql.exec(
-          `SELECT id FROM user_profiles WHERE id = ? LIMIT 1`,
-          [req.user.userAccount.profileId]
-        );
-        if (!userProfiles.length) {
-          return {
-            error: `Couldn't find a user profile by id ${req.user.userAccount.profileId}`,
-            status: 500
-          };
-        }
-
-        const userProfile = userProfiles[0];
-        const { username } = userProfile;
-        req.socket.username = username;
+        // Get the roomId, used as an id in rooms and join socket room
+        req.socket.roomId = roomId;
 
         // TODO temporary limit on viewers / podcasts in a room
         if (io.getSocketCount(roomId) >= 16) {
@@ -190,8 +182,8 @@ module.exports = ({ io }) => {
 
         if (!router) {
           return {
-            ok: false,
-            error: "Unknown error, no router was found or created."
+            error: "Unknown error, no router was found or created.",
+            status: 500
           };
         }
 
@@ -204,14 +196,6 @@ module.exports = ({ io }) => {
 
         // Join the Socket.IO room
         req.socket.join(roomId);
-        room.users[req.socket.id] = {
-          id: userProfile.id,
-          username,
-          producerIds: {
-            webcam: "",
-            mic: ""
-          }
-        };
 
         // Get all streams for connection later (deep copy)
         const streams = JSON.parse(JSON.stringify(router.$streams));
@@ -219,23 +203,13 @@ module.exports = ({ io }) => {
         // Get the RTP capabilities of the router
         const routerRtpCapabilities = router.rtpCapabilities;
 
-        // Tell all clients that user has joined
-        io.in(roomId).emit("chat/message", {
-          type: "action",
-          text: `${username} joined the room`
-        });
-
-        // Update users array for all users
-        io.in(roomId).emit("chat/users", room.users);
-
         // Respond to client with router capabilites and streams array
         return {
           ok: true,
           data: {
             routerRtpCapabilities,
             streams,
-            room,
-            key: req.socket.key
+            room
           }
         };
       }

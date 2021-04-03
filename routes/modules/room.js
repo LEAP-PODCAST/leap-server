@@ -38,7 +38,6 @@ module.exports = ({ io }) => {
 
         // Get the roomId, used as an id in rooms and join socket room
         req.socket.roomId = roomId;
-        req.socket.key = req.ip;
 
         // Get the username from the userProfile with profileId
         const [
@@ -116,8 +115,7 @@ module.exports = ({ io }) => {
           data: {
             routerRtpCapabilities,
             streams,
-            room,
-            key: req.socket.key
+            room
           }
         };
       }

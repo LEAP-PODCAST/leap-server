@@ -42,6 +42,25 @@ module.exports = ({ io }) => {
         const hostIds = [];
         const hostProfiles = [];
 
+        // Add creator to array
+        const [
+          userProfiles
+        ] = await mysql.getUserProfiles(
+          "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
+          [req.user.userAccount.profileId]
+        );
+        if (!userProfiles.length) {
+          return {
+            error: "Could not find your user profile in the database",
+            status: 500
+          };
+        }
+
+        hosts.unshift({
+          type: "user",
+          ...userProfiles[0]
+        });
+
         // Verify hosts are legit hosts
         for (const host of hosts.filter(hosts => hosts.type === "user")) {
           const [
@@ -92,7 +111,6 @@ module.exports = ({ io }) => {
 
         // Add podcast to hosts podcasts array
         for (const hostProfile of hostProfiles) {
-          console.log(hostProfile);
           hostProfile.podcasts.push(result.insertId);
 
           const [
@@ -300,8 +318,6 @@ module.exports = ({ io }) => {
             status: 400
           };
         }
-
-        console.log(name);
 
         // Add to the db
         const [result] = await mysql.exec(

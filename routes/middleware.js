@@ -28,26 +28,6 @@ module.exports = ({ io }) => ({
     // Attach socket to req
     req.socket = socket;
 
-    // If user has key tied to them
-    if (req.socket.key) {
-      const key = req.headers["user-key"];
-
-      if (!key) {
-        return {
-          ok: false,
-          error: "No user-key header on request"
-        };
-      }
-
-      // Keys do not match
-      if (req.socket.key !== key) {
-        return {
-          ok: false,
-          error: "You're not authenticated for this route"
-        };
-      }
-    }
-
     return { ok: true };
   },
 
@@ -90,6 +70,7 @@ module.exports = ({ io }) => ({
         return { error: "No device-id header present", status: 401 };
       }
       req.user = jwt.verify(token, deviceId);
+      req.deviceId = deviceId;
       return { ok: true };
     } catch (err) {
       console.error(err);
@@ -106,7 +87,7 @@ module.exports = ({ io }) => ({
     const { podcastId } = req.body;
 
     if (!podcastId) {
-      return { error: "No podcast provided", status: 400 };
+      return { error: "No podcastId provided", status: 400 };
     }
 
     const [
@@ -144,8 +125,6 @@ module.exports = ({ io }) => ({
       };
     }
 
-    console.log(podcast.hosts, user.userAccount.profileId);
-
     // Check if the user is a host in that podcast
     if (!podcast.hosts.find(({ id }) => id === user.userAccount.profileId)) {
       return { error: "You are not a host of this podcast", status: 400 };
@@ -168,7 +147,7 @@ module.exports = ({ io }) => ({
 
     const [
       episodes
-    ] = await mysql.exec("SELECT * FROM scheduled_episode WHERE id = ?", [
+    ] = await mysql.exec("SELECT * FROM scheduled_podcast WHERE id = ?", [
       episodeId
     ]);
     if (!episodes.length) {
@@ -176,11 +155,11 @@ module.exports = ({ io }) => ({
     }
 
     // Verify podcastId and episode.podcastId match
-    if (episodeId !== req.podcast.id) {
-      return { error: "Episode id does not match podcastId", error: 400 };
+    if (episodes[0].podcastId !== req.podcast.id) {
+      return { error: "Episode id does not match podcastId", status: 400 };
     }
 
-    req.episode = episode;
+    req.episode = episodes[0];
 
     return { ok: true };
   }
