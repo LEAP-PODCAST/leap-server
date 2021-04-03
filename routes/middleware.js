@@ -37,15 +37,16 @@ module.exports = ({ io }) => ({
    * @param {Response} res
    */
   verifyRoomId(req, res) {
-    const { roomId } = req.body;
+    const roomId = req.body.roomId || req.socket.roomId;
     const router = routers.get(roomId);
     const room = rooms.get(roomId);
 
+    if (!roomId) {
+      return { error: "No roomId provided" };
+    }
+
     if (!router || !room) {
-      return {
-        ok: false,
-        error: `No router or room found by room ID ${roomId}`
-      };
+      return { error: `No router or room found by room ID ${roomId}` };
     }
 
     req.router = router;

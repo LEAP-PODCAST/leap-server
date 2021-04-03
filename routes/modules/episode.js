@@ -8,6 +8,7 @@ const Router = require("../../mediasoup/router.js");
 module.exports = ({ io }) => {
   const {
     verifySocketId,
+    verifyRoomId,
     verifyUserToken,
     verifyPodcastExists,
     verifyUserIsHostOfPodcast,
@@ -212,6 +213,68 @@ module.exports = ({ io }) => {
             room
           }
         };
+      }
+    }),
+
+    /**
+     * Join a room by roomId, get or create the Router
+     * @param {string} roomId
+     */
+    authenticate: new ExpressRoute({
+      type: "POST",
+
+      model: {},
+
+      middleware: [verifySocketId, verifyRoomId, verifyUserToken],
+
+      async function(req, res) {
+        // TODO verify live episode exists in database;
+
+        // Get the username from the userProfile with profileId
+        const [
+          userProfiles
+        ] = await mysql.exec(
+          `SELECT id FROM user_profiles WHERE id = ? LIMIT 1`,
+          [req.user.userAccount.profileId]
+        );
+        if (!userProfiles.length) {
+          return {
+            error: `Couldn't find a user profile by id ${req.user.userAccount.profileId}`,
+            status: 500
+          };
+        }
+
+        const userProfile = userProfiles[0];
+        const { username } = userProfile;
+        req.socket.username = username;
+
+        const { roomId } = req.socket;
+
+        // TODO temporary limit on viewers / podcasts in a room
+        if (io.getSocketCount(roomId) >= 16) {
+          return {
+            ok: false,
+            error: `Max users of 16 in room ${roomId}`,
+            status: 400
+          };
+        }
+
+        const room = rooms.get(roomId);
+
+        // Add user as user in room
+        room.users[req.socket.id] = {
+          id: userProfile.id,
+          username,
+          producerIds: {
+            webcam: "",
+            mic: ""
+          }
+        };
+
+        // Update users array for all users
+        io.in(roomId).emit("chat/users", room.users);
+
+        return { ok: true };
       }
     })
   };
