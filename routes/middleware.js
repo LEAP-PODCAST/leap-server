@@ -143,7 +143,7 @@ module.exports = ({ io }) => ({
    * @param {Request} req
    * @param {Response} res
    */
-  async verifyEpisodeExists(req, res) {
+  async verifyScheduledEpisodeExists(req, res) {
     const { episodeId } = req.body;
 
     if (!episodeId) {
@@ -157,6 +157,36 @@ module.exports = ({ io }) => ({
     ]);
     if (!episodes.length) {
       return { error: "No scheduled episode found by that id", status: 400 };
+    }
+
+    // Verify podcastId and episode.podcastId match
+    if (episodes[0].podcastId !== req.podcast.id) {
+      return { error: "Episode id does not match podcastId", status: 400 };
+    }
+
+    req.episode = episodes[0];
+
+    return { ok: true };
+  },
+
+  async verifyEpisodeExists(req, res) {
+    const { podcastId, episodeId } = req.body;
+
+    if (!episodeId) {
+      return { error: "No episodeId provided", status: 400 };
+    }
+    if (!req.podcast) {
+      return { error: "No podcast attached to request object", stats: 400 };
+    }
+
+    const [
+      episodes
+    ] = await mysql.exec(
+      `SELECT * FROM podcast_${podcastId}_episodes WHERE id = ?`,
+      [episodeId]
+    );
+    if (!episodes.length) {
+      return { error: "No episode found by that id", status: 400 };
     }
 
     // Verify podcastId and episode.podcastId match

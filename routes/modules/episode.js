@@ -12,6 +12,7 @@ module.exports = ({ io }) => {
     verifyUserToken,
     verifyPodcastExists,
     verifyUserIsHostOfPodcast,
+    verifyScheduledEpisodeExists,
     verifyEpisodeExists
   } = require("../middleware.js")({
     io
@@ -44,7 +45,7 @@ module.exports = ({ io }) => {
         verifyUserToken,
         verifyPodcastExists,
         verifyUserIsHostOfPodcast,
-        verifyEpisodeExists
+        verifyScheduledEpisodeExists
       ],
 
       async function(req, res) {
@@ -167,6 +168,13 @@ module.exports = ({ io }) => {
 
         const episode = episodes[0];
 
+        if (!episode.isLive) {
+          return {
+            error: "That episode is no longer live",
+            status: 400
+          };
+        }
+
         // Get the roomId, used as an id in rooms and join socket room
         req.socket.roomId = roomId;
 
@@ -282,18 +290,57 @@ module.exports = ({ io }) => {
     }),
 
     end: new ExpressRoute({
-      type: "POST",
+      type: "PUT",
 
-      model: {},
+      model: {
+        body: {
+          podcastId: {
+            type: "number",
+            required: true
+          },
+          episodeId: {
+            type: "number",
+            required: true
+          }
+        }
+      },
 
       middleware: [
+        verifySocketId,
         verifyUserToken,
         verifyPodcastExists,
         verifyUserIsHostOfPodcast,
         verifyEpisodeExists
       ],
 
-      async function(req, res) {}
+      async function(req, res) {
+        const { podcastId, episodeId } = req.body;
+
+        // Update episode to not be live anymore
+        const [
+          result
+        ] = await mysql.exec(
+          `UPDATE podcast_${podcastId}_episodes SET isLive = false WHERE id = ?`,
+          [episodeId]
+        );
+        if (!result) {
+          return {
+            error: "An error occurred while updating episode state to not live",
+            status: 500
+          };
+        }
+
+        // Tell all clients, room is closed
+        io.to(req.socket.roomId).emit("episode/end");
+
+        // Destroy the room
+        await Router.close(req.socket.roomId);
+        rooms.delete(req.socket.roomId);
+
+        // TODO Stop recording if recording
+
+        return { ok: true };
+      }
     })
   };
 };
