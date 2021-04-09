@@ -139,9 +139,10 @@ module.exports = ({ io }) => {
         // Get podcast and episode
         const [
           podcasts
-        ] = await mysql.exec("SELECT * FROM podcasts WHERE urlName = ?", [
-          podcastUrlName
-        ]);
+        ] = await mysql.getPodcasts(
+          "SELECT * FROM podcasts WHERE urlName = ?",
+          [podcastUrlName]
+        );
         if (!podcasts.length) {
           return {
             error: "No podcast found by that urlName",
@@ -153,7 +154,7 @@ module.exports = ({ io }) => {
 
         const [
           episodes
-        ] = await mysql.exec(
+        ] = await mysql.getEpisodes(
           `SELECT * FROM podcast_${podcast.id}_episodes WHERE urlName = ?`,
           [episodeUrlName]
         );
@@ -210,7 +211,9 @@ module.exports = ({ io }) => {
           data: {
             routerRtpCapabilities,
             streams,
-            room
+            room,
+            podcast,
+            episode
           }
         };
       }
@@ -276,6 +279,21 @@ module.exports = ({ io }) => {
 
         return { ok: true };
       }
+    }),
+
+    end: new ExpressRoute({
+      type: "POST",
+
+      model: {},
+
+      middleware: [
+        verifyUserToken,
+        verifyPodcastExists,
+        verifyUserIsHostOfPodcast,
+        verifyEpisodeExists
+      ],
+
+      async function(req, res) {}
     })
   };
 };

@@ -88,7 +88,24 @@ global.consumers = new Map();
         ? (p.hosts = [])
         : (p.hosts = p.hosts.split(",").map(v => parseInt(v)));
 
-      console.log(p.hosts);
+      if (p.hosts.length) {
+        const [hosts] = await mysql.exec(
+          "SELECT * FROM user_profiles WHERE `id` IN (?)",
+          p.hosts
+        );
+        p.hosts = hosts;
+      }
+    }
+    return res;
+  };
+
+  global.mysql.getEpisodes = async (query, params) => {
+    const res = await global.mysql.exec(query, params);
+    for (let i = 0; i < res[0].length; i++) {
+      const p = res[0][i];
+      !p.hosts
+        ? (p.hosts = [])
+        : (p.hosts = p.hosts.split(",").map(v => parseInt(v)));
 
       if (p.hosts.length) {
         const [hosts] = await mysql.exec(
@@ -96,6 +113,14 @@ global.consumers = new Map();
           p.hosts
         );
         p.hosts = hosts;
+      }
+
+      if (p.guests.length) {
+        const [guests] = await mysql.exec(
+          "SELECT * FROM user_profiles WHERE `id` IN (?)",
+          p.guests
+        );
+        p.guests = guests;
       }
     }
     return res;
