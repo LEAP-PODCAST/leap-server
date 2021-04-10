@@ -80,8 +80,6 @@ module.exports = ({ io }) => {
           hostIds.push(selectedHosts[0].id);
         }
 
-        // TODO add invited hosts to podcast
-
         // Check if podcast with name already exists
         const [
           podcasts
@@ -94,8 +92,6 @@ module.exports = ({ io }) => {
             status: 400
           };
         }
-
-        console.log(hostIds.toString());
 
         // Create the podcast
         const [result] = await mysql.exec(
@@ -127,6 +123,32 @@ module.exports = ({ io }) => {
               status: 500
             };
           }
+        }
+
+        // Email users who are not on leap to join with a temporary account
+        for (const host of hosts.filter(host => host.type === "email")) {
+          const lowerEmail = host.email.toLowerCase();
+
+          await SES.sendEmail({
+            to: lowerEmail,
+            subject: "You were invited to join Leap",
+            message: `
+              <body>
+                <h1>${userProfiles[0].firstName} ${userProfiles[0].lastName} has added you as a host for ${name}.</h1>
+                <p>Click the link below to create an account and confirm your email.</p>
+                <a href="https://staging.joinleap.co/verifyemail">Create my Account!</a>
+              </body>
+            `,
+            from: "support@joinleap.co"
+          });
+
+          const [result2] = await mysql.exec(
+            `INSERT INTO email_invites (
+            email,
+            podcastId
+          ) VALUES (?, ?)`,
+            [lowerEmail, result.insertId]
+          );
         }
 
         // Create table for episodes

@@ -23,7 +23,15 @@ module.exports = async () => {
 
   await mysql.exec(`CREATE TABLE IF NOT EXISTS user_account_email_validations (
     profileId INTEGER PRIMARY KEY NOT NULL,
+    email VARCHAR(64) NOT NULL,
     id VARCHAR(16) NOT NULL
+  )`);
+
+  await mysql.exec(`CREATE TABLE IF NOT EXISTS email_invites (
+    id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(64) NOT NULL,
+    podcastId INTEGER,
+    episodeId INTEGER
   )`);
 
   await mysql.exec(`CREATE TABLE IF NOT EXISTS podcasts (
