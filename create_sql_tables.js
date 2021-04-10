@@ -17,7 +17,13 @@ module.exports = async () => {
     email VARCHAR(32) UNIQUE NOT NULL,
     password VARCHAR(64) NOT NULL,
     salt VARCHAR(64) NOT NULL,
-    receiveNotifications BOOLEAN NOT NULL
+    receiveNotifications BOOLEAN NOT NULL,
+    isEmailVerified BOOL
+  )`);
+
+  await mysql.exec(`CREATE TABLE IF NOT EXISTS user_account_email_validations (
+    profileId INTEGER PRIMARY KEY NOT NULL,
+    id VARCHAR(16) NOT NULL
   )`);
 
   await mysql.exec(`CREATE TABLE IF NOT EXISTS podcasts (
@@ -27,8 +33,6 @@ module.exports = async () => {
     iconUrl TEXT,
     hosts TEXT
   )`);
-
-  // TODO create unique tables for podcast_mypodcast_clips and podcast_mypodcast_episodes
 
   // TODO for each podcast create a seperate table for the corresponding comments
 

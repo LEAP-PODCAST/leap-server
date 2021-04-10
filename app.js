@@ -8,9 +8,8 @@ const Worker = require("./mediasoup/worker");
 const http = require("http");
 const consola = require("consola");
 const { runAtEveryMSInterval } = require("./methods");
-// global.amazonSES = require("node-ses").createClient({
-//   key
-// })
+
+global.SES = new (require("./classes/SESClient"))();
 
 // Create http server if not https
 let server;

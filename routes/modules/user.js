@@ -162,9 +162,10 @@ module.exports = ({ io }) => {
           email,
           password,
           salt,
-          receiveNotifications
-        ) VALUES (?, ?, ?, ?, ?)`,
-          [userProfile.id, lowerEmail, hash, salt, receiveNotifications]
+          receiveNotifications,
+          isEmailVerified
+        ) VALUES (?, ?, ?, ?, ?, ?)`,
+          [userProfile.id, lowerEmail, hash, salt, receiveNotifications, false]
         );
 
         if (!result || typeof result.insertId !== "number") {
@@ -173,6 +174,31 @@ module.exports = ({ io }) => {
             status: 500
           };
         }
+
+        // TODO at some point there will be a duplicate string in db
+        const emailId = crypto.randomBytes(16).toString("base64").substr(0, 16);
+
+        // Add email to verification table for awaitng email verification
+        const [result2] = await mysql.exec(
+          `INSERT INTO user_account_email_validations (
+          profileId,
+          id
+        ) VALUES (?, ?)`,
+          [userProfile.id, emailId]
+        );
+
+        SES.sendEmail({
+          to: email,
+          subject: "Welcome to Leap!",
+          message: `
+            <body>
+              <h1>Thank you for joining leap</h1>
+              <p>Please click the link below to confirm your email address.</p>
+              <a href="https://staging.joinleap.co/verifyemail?id=${emailId}">Confirm my Email!</a>
+            </body>
+          `,
+          from: "support@joinleap.co"
+        });
 
         const [
           userAccounts
