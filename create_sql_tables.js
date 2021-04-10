@@ -15,7 +15,7 @@ module.exports = async () => {
   await mysql.exec(`CREATE TABLE IF NOT EXISTS user_accounts (
     profileId INTEGER PRIMARY KEY NOT NULL,
     email VARCHAR(32) UNIQUE NOT NULL,
-    password BLOB NOT NULL,
+    password VARCHAR(64) NOT NULL,
     salt VARCHAR(64) NOT NULL,
     receiveNotifications BOOLEAN NOT NULL
   )`);

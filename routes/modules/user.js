@@ -115,7 +115,7 @@ module.exports = ({ io }) => {
           return { error: "That email is not available", status: 400 };
         }
 
-        // Create a user profile
+        // // Create a user profile
         var [result] = await mysql.exec(
           `INSERT INTO user_profiles (
           username,
@@ -150,15 +150,10 @@ module.exports = ({ io }) => {
 
         // Hash password with unique salt
         const salt = crypto.randomBytes(64).toString("base64").substr(0, 64);
-        const hash = await crypto
-          .pbkdf2Sync(
-            password,
-            salt,
-            Number(process.env.HASH_ITERATIONS),
-            64,
-            "sha256"
-          )
-          .toString();
+        const hash = crypto
+          .createHash("sha256")
+          .update(password)
+          .digest("base64");
 
         // Create a user account with profile id
         var [result] = await mysql.exec(
@@ -270,15 +265,10 @@ module.exports = ({ io }) => {
         const userAccount = userAccounts[0];
 
         // Check if hashed password = stored hashed password
-        const hash = await crypto
-          .pbkdf2Sync(
-            password,
-            userAccount.salt,
-            Number(process.env.HASH_ITERATIONS),
-            64,
-            "sha256"
-          )
-          .toString();
+        const hash = crypto
+          .createHash("sha256")
+          .update(password)
+          .digest("base64");
 
         if (hash !== userAccount.password) {
           return { error: "Incorrect login details", status: 400 };
