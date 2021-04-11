@@ -7,7 +7,11 @@ const { getLocalStamp } = require("../../methods.js");
 const e = require("express");
 
 module.exports = ({ io }) => {
-  const { verifySocketId, verifyRoomId } = require("../middleware.js")({ io });
+  const {
+    verifySocketId,
+    verifyRoomId,
+    verifyUserToken
+  } = require("../middleware.js")({ io });
 
   return {
     // Create a new recieve or send transport
@@ -136,10 +140,12 @@ module.exports = ({ io }) => {
         }
       },
 
-      middleware: [verifySocketId, verifyRoomId],
+      middleware: [verifySocketId, verifyRoomId, verifyUserToken],
 
       async function(req, res) {
         const { producerOptions, type } = req.body;
+
+        // TODO check if user is permissed to produce in this room
 
         // If user is already producing stream type
         if (req.room.users[req.socket.id].producerIds[type]) {
@@ -267,6 +273,8 @@ module.exports = ({ io }) => {
 
       async function(req, res) {
         const { consumerOptions } = req.body;
+
+        // TODO check if user is permissed to consume in room
 
         // Create a consumer
         const { success, consumer, error } = await Transport.consume({

@@ -245,7 +245,7 @@ module.exports = ({ io }) => {
         const [
           userProfiles
         ] = await mysql.exec(
-          `SELECT id FROM user_profiles WHERE id = ? LIMIT 1`,
+          `SELECT id, username, avatarUrl, firstName, lastName, fullUsername FROM user_profiles WHERE id = ? LIMIT 1`,
           [req.user.userAccount.profileId]
         );
         if (!userProfiles.length) {
@@ -274,8 +274,7 @@ module.exports = ({ io }) => {
 
         // Add user as user in room
         room.users[req.socket.id] = {
-          id: userProfile.id,
-          username,
+          userProfile,
           producerIds: {
             webcam: "",
             mic: ""

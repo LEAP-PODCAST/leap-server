@@ -136,7 +136,7 @@ module.exports = ({ io }) => {
               <body>
                 <h1>${userProfiles[0].firstName} ${userProfiles[0].lastName} has added you as a host for ${name}.</h1>
                 <p>Click the link below to create an account and confirm your email.</p>
-                <a href="https://staging.joinleap.co/verifyemail">Create my Account!</a>
+                <a href="https://staging.joinleap.co/signup?email=${lowerEmail}">Create my Account!</a>
               </body>
             `,
             from: "support@joinleap.co"
