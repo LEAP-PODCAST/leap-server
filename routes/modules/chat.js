@@ -3,7 +3,11 @@ const ExpressRoute = require("../ExpressRoute.js");
 const { getLocalStamp } = require("../../methods.js");
 
 module.exports = ({ io }) => {
-  const { verifySocketId, verifyRoomId } = require("../middleware.js")({ io });
+  const {
+    verifySocketId,
+    verifyRoomId,
+    verifyUserToken
+  } = require("../middleware.js")({ io });
 
   return {
     /**
@@ -23,7 +27,7 @@ module.exports = ({ io }) => {
         }
       },
 
-      middleware: [verifySocketId, verifyRoomId],
+      middleware: [verifySocketId, verifyRoomId, verifyUserToken],
 
       function(req, res) {
         const { text } = req.body;
@@ -32,7 +36,6 @@ module.exports = ({ io }) => {
         io.in(req.socket.roomId).emit("chat/message", {
           type: "message",
           text,
-          username: req.socket.username,
           socketId: req.socket.id
         });
 
