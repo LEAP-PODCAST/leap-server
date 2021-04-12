@@ -101,6 +101,37 @@ global.consumers = new Map();
     return res;
   };
 
+  global.mysql.getScheduledPodcast = async (query, params) => {
+    const res = await global.mysql.exec(query, params);
+    for (let i = 0; i < res[0].length; i++) {
+      const p = res[0][i];
+      !p.hosts
+        ? (p.hosts = [])
+        : (p.hosts = p.hosts.split(",").map(v => parseInt(v)));
+
+      if (p.hosts.length) {
+        const [hosts] = await mysql.exec(
+          "SELECT * FROM user_profiles WHERE `id` IN (?)",
+          p.hosts
+        );
+        p.hosts = hosts;
+      }
+
+      !p.guests
+        ? (p.guests = [])
+        : (p.guests = p.guests.split(",").map(v => parseInt(v)));
+
+      if (p.guests.length) {
+        const [guests] = await mysql.exec(
+          "SELECT * FROM user_profiles WHERE `id` IN (?)",
+          p.guests
+        );
+        p.guests = guests;
+      }
+    }
+    return res;
+  };
+
   global.mysql.getEpisodes = async (query, params) => {
     const res = await global.mysql.exec(query, params);
     for (let i = 0; i < res[0].length; i++) {
@@ -135,9 +166,48 @@ global.consumers = new Map();
 
     if (episodes.length) {
       for (const episode of episodes) {
+        const timeToAlert = episode.timeToAlert * 1000 * 60;
+
         // If scheduled episode timeToAlert
-        if (episode.startTime - episode.timeToAlert * 1000 * 60 >= Date.now()) {
-          // Email / notify users that episode is to begin in X amount of minutes
+        if (episode.startTime <= Date.now() - timeToAlert) {
+          // Get all hosts and guests
+          const users = [...episode.hosts, ...episode.guests];
+
+          // Get user accounts to get email
+          const [emails] = await mysql.exec(
+            "SELECT email FROM user_accounts WHERE `profileId` IN (?)",
+            users
+          );
+
+          // Get the corresponding podcast
+          const [
+            podcasts
+          ] = await mysql.exec("SELECT * FROM podcasts WHERE id = ? LIMIT 1", [
+            episode.podcastId
+          ]);
+          if (!podcasts.length) {
+            console.error(
+              `Could not find a podcast corresponding to podcastId ${episode.podcastId}`
+            );
+            continue;
+          }
+
+          const podcast = podcasts[0];
+
+          // Email each of them that episode will start soon
+          for (const email of emails) {
+            await SES.sendEmail({
+              to: email,
+              subject: `Leap - ${episode.name} is starting in ${episode.timeToAlert} minutes`,
+              message: `
+                <body>
+                  <h1>Leap - ${episode.name} is starting in ${episode.timeToAlert} minutes</h1>
+                  <a href="https://staging.joinleap.co/${podcast.urlName}/${episode.urlName}">Join the Podcast</a>
+                </body>
+              `,
+              from: "support@joinleap.co"
+            });
+          }
         }
 
         // If episode is still scheduled but over 24 hours late, remove it from the DB
