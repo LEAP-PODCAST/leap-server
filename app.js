@@ -148,6 +148,10 @@ global.consumers = new Map();
         p.hosts = hosts;
       }
 
+      !p.guests
+        ? (p.guests = [])
+        : (p.guests = p.guests.split(",").map(v => parseInt(v)));
+
       if (p.guests.length) {
         const [guests] = await mysql.exec(
           "SELECT * FROM user_profiles WHERE `id` IN (?)",
@@ -168,16 +172,27 @@ global.consumers = new Map();
       for (const episode of episodes) {
         const timeToAlert = episode.timeToAlert * 1000 * 60;
 
-        // If scheduled episode timeToAlert
-        if (episode.startTime <= Date.now() - timeToAlert) {
+        // If episode startTime - timeToAlert has passed, alert users that episode begins soon
+        if (episode.startTime - timeToAlert <= Date.now()) {
           // Get all hosts and guests
-          const users = [...episode.hosts, ...episode.guests];
+          const users = [...episode.hosts.split(",").map(u => parseInt(u))];
 
-          // Get user accounts to get email
-          const [emails] = await mysql.exec(
-            "SELECT email FROM user_accounts WHERE `profileId` IN (?)",
-            users
-          );
+          if (episode.guests.length) {
+            users.push(...episode.guests.split(",").map(u => parseInt(u)));
+          }
+
+          const emails = [];
+          for (const user of users) {
+            const [
+              e
+            ] = await mysql.exec(
+              "SELECT email FROM user_accounts WHERE profileId = ?",
+              [user]
+            );
+            emails.push(e[0].email);
+          }
+
+          console.log(emails);
 
           // Get the corresponding podcast
           const [
