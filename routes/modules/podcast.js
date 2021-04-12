@@ -249,6 +249,10 @@ module.exports = ({ io }) => {
             type: "string",
             required: true
           },
+          hosts: {
+            type: "array",
+            required: true
+          },
           guests: {
             type: "array",
             required: true
@@ -291,19 +295,38 @@ module.exports = ({ io }) => {
           visibility
         } = req.body;
 
+        const hostIds = [];
         const guestIds = [];
 
-        // Check if hosts and guests exist in database
-        for (const guest of guests.filter(guest => guest.type === "user")) {
+        // Check if hosts exist in the database
+        for (const user of hosts) {
           const [
             userProfiles
           ] = await mysql.exec(
             "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
-            [guest.id]
+            [user.id]
           );
           if (!userProfiles.length) {
             return {
-              error: `No user found by username ${guest.fullUsername}`,
+              error: `No user found by userId ${user.id}`,
+              status: 400
+            };
+          }
+
+          hostIds.push(userProfiles[0].id);
+        }
+
+        // Check if guests exist in database
+        for (const user of guests.filter(guest => guest.type === "user")) {
+          const [
+            userProfiles
+          ] = await mysql.exec(
+            "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
+            [user.id]
+          );
+          if (!userProfiles.length) {
+            return {
+              error: `No user found by userId ${user.id}`,
               status: 400
             };
           }
@@ -364,7 +387,7 @@ module.exports = ({ io }) => {
             sanitizeNameForURL(name),
             "",
             podcasts[0].hosts,
-            guests.toString(),
+            guestsIds.toString(),
             description,
             visibility,
             startDate.getTime(),
