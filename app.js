@@ -192,8 +192,6 @@ global.consumers = new Map();
             emails.push(e[0].email);
           }
 
-          console.log(emails);
-
           // Get the corresponding podcast
           const [
             podcasts
@@ -217,7 +215,6 @@ global.consumers = new Map();
               message: `
                 <body>
                   <h1>Leap - ${episode.name} is starting in ${episode.timeToAlert} minutes</h1>
-                  <a href="https://staging.joinleap.co/${podcast.urlName}/${episode.urlName}">Join the Podcast</a>
                 </body>
               `,
               from: "support@joinleap.co"

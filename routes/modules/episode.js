@@ -132,7 +132,53 @@ module.exports = ({ io }) => {
           };
         }
 
-        // TODO notify everyone that episode is starting
+        // Get user profile of user who submitted the request to start
+        const [
+          userProfiles
+        ] = await mysql.exec(
+          "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
+          [req.user.userAccount.profileId]
+        );
+        if (!userProfiles.length) {
+          return {
+            error: `NO user_profile found by profileId ${req.user.userAccount.profileId}`,
+            status: 500
+          };
+        }
+
+        const { firstName } = userProfiles[0];
+
+        const users = [...episode.hosts.split(",").map(u => parseInt(u))];
+
+        if (episode.guests.length) {
+          users.push(...episode.guests.split(",").map(u => parseInt(u)));
+        }
+
+        const emails = [];
+        for (const user of users) {
+          const [
+            e
+          ] = await mysql.exec(
+            "SELECT email FROM user_accounts WHERE profileId = ?",
+            [user]
+          );
+          emails.push(e[0].email);
+        }
+
+        // Email each of them that this user has started the podcast
+        for (const email of emails) {
+          await SES.sendEmail({
+            to: email,
+            subject: `Leap - ${episode.name} is starting now`,
+            message: `
+              <body>
+                <h1>${firstName} has started ${episode.name} </h1>
+                <a href="https://staging.joinleap.co/${podcast.urlName}/${episode.urlName}">Join the Podcast</a>
+              </body>
+            `,
+            from: "support@joinleap.co"
+          });
+        }
 
         return {
           ok: true,
