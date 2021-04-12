@@ -20,6 +20,41 @@ module.exports = ({ io }) => {
 
   return {
     /**
+     * Get all live episodes
+     */
+    getAllLive: new ExpressRoute({
+      type: "GET",
+
+      model: {
+        query: {
+          podcastId: {
+            type: "number",
+            required: true
+          }
+        }
+      },
+
+      middleware: [],
+
+      async function(req, res) {
+        const startingId = req.query.startingId || 1;
+
+        const params = [startingId];
+
+        if (isLive !== undefined) {
+          params.push(isLive);
+        }
+
+        const [podcasts] = await mysql.getEpisodes(
+          "SELECT * FROM  WHERE id >= ? LIMIT 100",
+          params
+        );
+
+        return { ok: true, data: podcasts };
+      }
+    }),
+
+    /**
      * Start live episode
      * @param {number} podcastId
      * @param {number} episodeId
