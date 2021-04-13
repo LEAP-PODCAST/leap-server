@@ -438,7 +438,7 @@ module.exports = ({ io }) => {
 
         const [
           userProfiles
-        ] = await mysql.getUserProfiles(
+        ] = await mysql.exec(
           "SELECT podcasts FROM user_profiles WHERE id = ? LIMIT 1",
           [id]
         );
@@ -447,14 +447,13 @@ module.exports = ({ io }) => {
         }
 
         // If user has no podcasts
-        const podcastIds = userProfiles[0].podcasts.map(p => p.id);
+        const podcastIds = userProfiles[0].podcasts;
         if (!podcastIds.length) {
           return { ok: true, data: [] };
         }
 
         const [episodes] = await mysql.exec(
-          "SELECT * FROM scheduled_podcast WHERE podcastId IN (?)",
-          podcastIds
+          `SELECT * FROM scheduled_podcast WHERE podcastId IN (${podcastIds})`
         );
 
         return {

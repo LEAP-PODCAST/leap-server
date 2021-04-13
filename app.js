@@ -67,7 +67,7 @@ global.consumers = new Map();
       !p.socials ? (p.socials = []) : (p.socials = p.socials.split(","));
 
       if (p.podcasts.length) {
-        console.log(p.podcasts);
+        console.log(p.podcasts.toString());
 
         const [podcasts] = await mysql.exec(
           `SELECT * FROM podcasts WHERE id IN (${p.podcasts})`
@@ -82,14 +82,10 @@ global.consumers = new Map();
     const res = await global.mysql.exec(query, params);
     for (let i = 0; i < res[0].length; i++) {
       const p = res[0][i];
-      !p.hosts
-        ? (p.hosts = [])
-        : (p.hosts = p.hosts.split(",").map(v => parseInt(v)));
 
       if (p.hosts.length) {
         const [hosts] = await mysql.exec(
-          "SELECT * FROM user_profiles WHERE `id` IN (?)",
-          p.hosts
+          `SELECT * FROM user_profiles WHERE id IN (${p.hosts})`
         );
         p.hosts = hosts;
       }
@@ -101,26 +97,17 @@ global.consumers = new Map();
     const res = await global.mysql.exec(query, params);
     for (let i = 0; i < res[0].length; i++) {
       const p = res[0][i];
-      !p.hosts
-        ? (p.hosts = [])
-        : (p.hosts = p.hosts.split(",").map(v => parseInt(v)));
 
       if (p.hosts.length) {
         const [hosts] = await mysql.exec(
-          "SELECT * FROM user_profiles WHERE `id` IN (?)",
-          p.hosts
+          `SELECT * FROM user_profiles WHERE id IN (${p.hosts})`
         );
         p.hosts = hosts;
       }
 
-      !p.guests
-        ? (p.guests = [])
-        : (p.guests = p.guests.split(",").map(v => parseInt(v)));
-
       if (p.guests.length) {
         const [guests] = await mysql.exec(
-          "SELECT * FROM user_profiles WHERE `id` IN (?)",
-          p.guests
+          `SELECT * FROM user_profiles WHERE id IN (${p.guests})`
         );
         p.guests = guests;
       }
@@ -132,26 +119,17 @@ global.consumers = new Map();
     const res = await global.mysql.exec(query, params);
     for (let i = 0; i < res[0].length; i++) {
       const p = res[0][i];
-      !p.hosts
-        ? (p.hosts = [])
-        : (p.hosts = p.hosts.split(",").map(v => parseInt(v)));
 
       if (p.hosts.length) {
         const [hosts] = await mysql.exec(
-          "SELECT * FROM user_profiles WHERE `id` IN (?)",
-          p.hosts
+          `SELECT * FROM user_profiles WHERE id IN (${p.hosts})`
         );
         p.hosts = hosts;
       }
 
-      !p.guests
-        ? (p.guests = [])
-        : (p.guests = p.guests.split(",").map(v => parseInt(v)));
-
       if (p.guests.length) {
         const [guests] = await mysql.exec(
-          "SELECT * FROM user_profiles WHERE `id` IN (?)",
-          p.guests
+          `SELECT * FROM user_profiles WHERE id IN (${p.guests})`
         );
         p.guests = guests;
       }
