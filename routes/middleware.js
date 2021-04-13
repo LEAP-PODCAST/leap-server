@@ -124,8 +124,6 @@ module.exports = ({ io }) => ({
       };
     }
 
-    console.log(podcast);
-
     // Check if the user is a host in that podcast
     if (
       !podcast.hosts

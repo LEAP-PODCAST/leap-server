@@ -64,17 +64,13 @@ global.consumers = new Map();
     const res = await global.mysql.exec(query, params);
     for (let i = 0; i < res[0].length; i++) {
       const p = res[0][i];
-      !p.socials
-        ? (p.socials = [])
-        : (p.socials = p.socials.split(",").map(v => parseInt(v)));
-      !p.podcasts
-        ? (p.podcasts = [])
-        : (p.podcasts = p.podcasts.split(",").map(v => parseInt(v)));
+      !p.socials ? (p.socials = []) : (p.socials = p.socials.split(","));
 
       if (p.podcasts.length) {
+        console.log(p.podcasts);
+
         const [podcasts] = await mysql.exec(
-          "SELECT * FROM podcasts WHERE `id` IN (?)",
-          p.podcasts
+          `SELECT * FROM podcasts WHERE id IN (${p.podcasts})`
         );
         p.podcasts = podcasts;
       }

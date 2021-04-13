@@ -109,13 +109,15 @@ module.exports = ({ io }) => {
 
         // Add podcast to hosts podcasts array
         for (const hostProfile of hostProfiles) {
-          hostProfile.podcasts.push(result.insertId);
+          const podcastIds = hostProfile.podcasts.map(p => p.id);
+          podcastIds.push(result.insertId);
+          console.log(podcastIds);
 
           const [
             result2
           ] = await mysql.exec(
             `UPDATE user_profiles SET podcasts = ? WHERE id = ?`,
-            [hostProfile.podcasts.toString(), hostProfile.id]
+            [podcastIds.toString(), hostProfile.id]
           );
           if (!result2) {
             return {
