@@ -67,8 +67,6 @@ global.consumers = new Map();
       !p.socials ? (p.socials = []) : (p.socials = p.socials.split(","));
 
       if (p.podcasts.length) {
-        console.log(p.podcasts.toString());
-
         const [podcasts] = await mysql.exec(
           `SELECT * FROM podcasts WHERE id IN (${p.podcasts})`
         );
@@ -268,6 +266,7 @@ function createExpressApp() {
   app.use(cors());
   app.use(bodyParser.urlencoded({ extended: true }));
   app.use(bodyParser.json({ extended: true }));
+  app.use(express.static("views"));
   app.use((req, res, next) => {
     // If API method
     if (/^\/api/.test(req.path)) {
