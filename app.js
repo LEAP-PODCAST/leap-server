@@ -224,30 +224,32 @@ async function main() {
   await Worker.createWorkers();
 
   // Create http or https server depending on NODE_ENV
-  if (process.env.NODE_ENV === "development") {
-    server = http.createServer(app);
+  // if (process.env.NODE_ENV === "development") {
+  server = http.createServer(app);
 
-    server.listen(process.env.PORT, () => {
-      consola.success(
-        `Leap server listening on ${global.SERVER_IP}:${process.env.PORT}`
-      );
-    });
-  } else if (process.env.NODE_ENV === "production") {
-    server = require("greenlock-express")
-      .init({
-        packageRoot: __dirname,
-        configDir: "./greenlock.d",
-        cluster: false,
-        maintainerEmail: "trystonmperry@gmail.com"
-      })
-      .serve(app);
-
-    consola.success(`Leap server listening on ${global.SERVER_IP}`);
-  } else {
-    consola.error(
-      `${process.env.NODE_ENV} is not a valid NODE_ENV env variable`
+  server.listen(process.env.PORT, () => {
+    consola.success(
+      `Leap server listening on ${global.SERVER_IP}:${process.env.PORT}`
     );
-  }
+  });
+  // }
+
+  // else if (process.env.NODE_ENV === "production") {
+  //   server = require("greenlock-express")
+  //     .init({
+  //       packageRoot: __dirname,
+  //       configDir: "./greenlock.d",
+  //       cluster: false,
+  //       maintainerEmail: "trystonmperry@gmail.com"
+  //     })
+  //     .serve(app);
+
+  //   consola.success(`Leap server listening on ${global.SERVER_IP}`);
+  // } else {
+  //   consola.error(
+  //     `${process.env.NODE_ENV} is not a valid NODE_ENV env variable`
+  //   );
+  // }
 
   // Attack Socket.IO to express server
   io = require("socket.io")(server);
