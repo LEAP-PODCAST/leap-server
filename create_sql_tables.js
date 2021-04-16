@@ -12,7 +12,7 @@ module.exports = async () => {
     createdAt TIMESTAMP NOT NULL DEFAULT NOW()
   )`);
 
-  await mysql.exec(`CREATE TABLE IF NOT EXISTS user_accounts (
+  await mysql.exec(`CREATE TABLE IF NOT EXISTS l (
     profileId INTEGER PRIMARY KEY NOT NULL,
     email VARCHAR(32) UNIQUE NOT NULL,
     password VARCHAR(64) NOT NULL,
@@ -65,5 +65,10 @@ module.exports = async () => {
     startTime BIGINT NOT NULL,
     endTime BIGINT NOT NULL,
     timeToAlert SMALLINT
+  )`);
+
+  await mysql.exec(`CREATE TABLE IF NOT EXISTS email_list (
+    email VARCHAR(32) PRIMARY KEY,
+    timestamp INTEGER NOT NULL
   )`);
 };

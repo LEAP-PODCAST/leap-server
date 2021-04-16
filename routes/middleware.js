@@ -124,8 +124,6 @@ module.exports = ({ io }) => ({
       };
     }
 
-    console.log(podcast);
-
     // Check if the user is a host in that podcast
     if (
       !podcast.hosts
@@ -195,6 +193,18 @@ module.exports = ({ io }) => ({
     }
 
     req.episode = episodes[0];
+
+    return { ok: true };
+  },
+
+  verifyAdminPassword(req, res) {
+    const password = req.headers["admin-password"];
+    if (!password) {
+      return { error: "admin-password header is required", status: 400 };
+    }
+    if (password !== process.env.ADMIN_PASSWORD) {
+      return { error: "That password is invalid", status: 400 };
+    }
 
     return { ok: true };
   }

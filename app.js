@@ -64,17 +64,11 @@ global.consumers = new Map();
     const res = await global.mysql.exec(query, params);
     for (let i = 0; i < res[0].length; i++) {
       const p = res[0][i];
-      !p.socials
-        ? (p.socials = [])
-        : (p.socials = p.socials.split(",").map(v => parseInt(v)));
-      !p.podcasts
-        ? (p.podcasts = [])
-        : (p.podcasts = p.podcasts.split(",").map(v => parseInt(v)));
+      !p.socials ? (p.socials = []) : (p.socials = p.socials.split(","));
 
       if (p.podcasts.length) {
         const [podcasts] = await mysql.exec(
-          "SELECT * FROM podcasts WHERE `id` IN (?)",
-          p.podcasts
+          `SELECT * FROM podcasts WHERE id IN (${p.podcasts})`
         );
         p.podcasts = podcasts;
       }
@@ -86,16 +80,34 @@ global.consumers = new Map();
     const res = await global.mysql.exec(query, params);
     for (let i = 0; i < res[0].length; i++) {
       const p = res[0][i];
-      !p.hosts
-        ? (p.hosts = [])
-        : (p.hosts = p.hosts.split(",").map(v => parseInt(v)));
 
       if (p.hosts.length) {
         const [hosts] = await mysql.exec(
-          "SELECT * FROM user_profiles WHERE `id` IN (?)",
-          p.hosts
+          `SELECT * FROM user_profiles WHERE id IN (${p.hosts})`
         );
         p.hosts = hosts;
+      }
+    }
+    return res;
+  };
+
+  global.mysql.getScheduledPodcast = async (query, params) => {
+    const res = await global.mysql.exec(query, params);
+    for (let i = 0; i < res[0].length; i++) {
+      const p = res[0][i];
+
+      if (p.hosts.length) {
+        const [hosts] = await mysql.exec(
+          `SELECT * FROM user_profiles WHERE id IN (${p.hosts})`
+        );
+        p.hosts = hosts;
+      }
+
+      if (p.guests.length) {
+        const [guests] = await mysql.exec(
+          `SELECT * FROM user_profiles WHERE id IN (${p.guests})`
+        );
+        p.guests = guests;
       }
     }
     return res;
@@ -105,22 +117,17 @@ global.consumers = new Map();
     const res = await global.mysql.exec(query, params);
     for (let i = 0; i < res[0].length; i++) {
       const p = res[0][i];
-      !p.hosts
-        ? (p.hosts = [])
-        : (p.hosts = p.hosts.split(",").map(v => parseInt(v)));
 
       if (p.hosts.length) {
         const [hosts] = await mysql.exec(
-          "SELECT * FROM user_profiles WHERE `id` IN (?)",
-          p.hosts
+          `SELECT * FROM user_profiles WHERE id IN (${p.hosts})`
         );
         p.hosts = hosts;
       }
 
       if (p.guests.length) {
         const [guests] = await mysql.exec(
-          "SELECT * FROM user_profiles WHERE `id` IN (?)",
-          p.guests
+          `SELECT * FROM user_profiles WHERE id IN (${p.guests})`
         );
         p.guests = guests;
       }
@@ -135,9 +142,56 @@ global.consumers = new Map();
 
     if (episodes.length) {
       for (const episode of episodes) {
-        // If scheduled episode timeToAlert
-        if (episode.startTime - episode.timeToAlert * 1000 * 60 >= Date.now()) {
-          // Email / notify users that episode is to begin in X amount of minutes
+        const timeToAlert = episode.timeToAlert * 1000 * 60;
+
+        // If episode startTime - timeToAlert has passed, alert users that episode begins soon
+        if (episode.startTime - timeToAlert <= Date.now()) {
+          // Get all hosts and guests
+          const users = [...episode.hosts.split(",").map(u => parseInt(u))];
+
+          if (episode.guests.length) {
+            users.push(...episode.guests.split(",").map(u => parseInt(u)));
+          }
+
+          const emails = [];
+          for (const user of users) {
+            const [
+              e
+            ] = await mysql.exec(
+              "SELECT email FROM user_accounts WHERE profileId = ?",
+              [user]
+            );
+            emails.push(e[0].email);
+          }
+
+          // Get the corresponding podcast
+          const [
+            podcasts
+          ] = await mysql.exec("SELECT * FROM podcasts WHERE id = ? LIMIT 1", [
+            episode.podcastId
+          ]);
+          if (!podcasts.length) {
+            console.error(
+              `Could not find a podcast corresponding to podcastId ${episode.podcastId}`
+            );
+            continue;
+          }
+
+          const podcast = podcasts[0];
+
+          // Email each of them that episode will start soon
+          for (const email of emails) {
+            await SES.sendEmail({
+              to: email,
+              subject: `Leap - ${episode.name} is starting in ${episode.timeToAlert} minutes`,
+              message: `
+                <body>
+                  <h1>Leap - ${episode.name} is starting in ${episode.timeToAlert} minutes</h1>
+                </body>
+              `,
+              from: "support@joinleap.co"
+            });
+          }
         }
 
         // If episode is still scheduled but over 24 hours late, remove it from the DB
@@ -208,6 +262,7 @@ function createExpressApp() {
   app.use(cors());
   app.use(bodyParser.urlencoded({ extended: true }));
   app.use(bodyParser.json({ extended: true }));
+  app.use(express.static("views"));
   app.use((req, res, next) => {
     // If API method
     if (/^\/api/.test(req.path)) {

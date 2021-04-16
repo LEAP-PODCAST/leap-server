@@ -109,13 +109,15 @@ module.exports = ({ io }) => {
 
         // Add podcast to hosts podcasts array
         for (const hostProfile of hostProfiles) {
-          hostProfile.podcasts.push(result.insertId);
+          const podcastIds = hostProfile.podcasts.map(p => p.id);
+          podcastIds.push(result.insertId);
+          console.log(podcastIds);
 
           const [
             result2
           ] = await mysql.exec(
             `UPDATE user_profiles SET podcasts = ? WHERE id = ?`,
-            [hostProfile.podcasts.toString(), hostProfile.id]
+            [podcastIds.toString(), hostProfile.id]
           );
           if (!result2) {
             return {
@@ -291,19 +293,38 @@ module.exports = ({ io }) => {
           visibility
         } = req.body;
 
+        const hostIds = [];
         const guestIds = [];
 
-        // Check if hosts and guests exist in database
-        for (const guest of guests.filter(guest => guest.type === "user")) {
+        // Check if hosts exist in the database
+        // for (const user of hosts) {
+        //   const [
+        //     userProfiles
+        //   ] = await mysql.exec(
+        //     "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
+        //     [user.id]
+        //   );
+        //   if (!userProfiles.length) {
+        //     return {
+        //       error: `No user found by userId ${user.id}`,
+        //       status: 400
+        //     };
+        //   }
+
+        //   hostIds.push(userProfiles[0].id);
+        // }
+
+        // Check if guests exist in database
+        for (const user of guests.filter(guest => guest.type === "user")) {
           const [
             userProfiles
           ] = await mysql.exec(
             "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
-            [guest.id]
+            [user.id]
           );
           if (!userProfiles.length) {
             return {
-              error: `No user found by username ${guest.fullUsername}`,
+              error: `No user found by userId ${user.id}`,
               status: 400
             };
           }
@@ -364,7 +385,7 @@ module.exports = ({ io }) => {
             sanitizeNameForURL(name),
             "",
             podcasts[0].hosts,
-            guests.toString(),
+            guestIds.toString(),
             description,
             visibility,
             startDate.getTime(),
@@ -417,7 +438,7 @@ module.exports = ({ io }) => {
 
         const [
           userProfiles
-        ] = await mysql.getUserProfiles(
+        ] = await mysql.exec(
           "SELECT podcasts FROM user_profiles WHERE id = ? LIMIT 1",
           [id]
         );
@@ -426,14 +447,13 @@ module.exports = ({ io }) => {
         }
 
         // If user has no podcasts
-        const podcastIds = userProfiles[0].podcasts.map(p => p.id);
+        const podcastIds = userProfiles[0].podcasts;
         if (!podcastIds.length) {
           return { ok: true, data: [] };
         }
 
         const [episodes] = await mysql.exec(
-          "SELECT * FROM scheduled_podcast WHERE podcastId IN (?)",
-          podcastIds
+          `SELECT * FROM scheduled_podcast WHERE podcastId IN (${podcastIds})`
         );
 
         return {

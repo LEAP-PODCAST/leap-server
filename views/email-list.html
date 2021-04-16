@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Email List</title>
+  </head>
+  <body>
+    <h1>Leap Email List</h1>
+
+    <table>
+      <thead>
+        <tr>
+          <td>Emails</td>
+          <td>Date Joined</td>
+        </tr>
+      </thead>
+      <tbody id="emails"></tbody>
+    </table>
+
+    <script>
+      (async () => {
+        const password = prompt("Enter the admin password");
+
+        const res = await fetch(`${location.origin}/api/general/getEmailList`, {
+          headers: { "admin-password": password }
+        });
+
+        if (!res.ok) return;
+        const { data } = await res.json();
+
+        console.log(data);
+
+        const emails_el = document.getElementById("emails");
+        for (const item of data) {
+          const d = new Date(item.timestamp * 1000);
+          emails_el.innerHTML += `
+            <tr>
+              <td>
+                <a href="mailto:${item.email}">${item.email}</a></td>
+              <td>
+                ${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}
+              </td>
+            </tr>
+          `;
+        }
+      })();
+    </script>
+  </body>
+</html>
