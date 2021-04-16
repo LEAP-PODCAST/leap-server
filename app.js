@@ -165,11 +165,7 @@ global.consumers = new Map();
 main();
 
 async function main() {
-  global.SERVER_IP = await new Promise(resolve => {
-    require("dns").lookup(require("os").hostname(), (err, addr) => {
-      resolve(addr);
-    });
-  });
+  global.SERVER_IP = process.env.SERVER_IP;
 
   await Worker.createWorkers();
 
