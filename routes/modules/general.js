@@ -73,6 +73,20 @@ module.exports = ({ io }) => {
           [lowerEmail, Math.floor(Date.now() / 1000)]
         );
 
+        // Post email in discord
+        await fetch(
+          "https://discord.com/api/webhooks/833068991332221009/4XSW5oX1dYWKovfLO7FemHaETX-vtA9VPZC5ZAeUAqdbNrkqXdUYyiITp8iJRSFVrOyD",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              content: `${email} requested access`
+            })
+          }
+        );
+
         return { ok: true };
       }
     })

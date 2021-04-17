@@ -6,6 +6,7 @@ const cors = require("cors");
 const app = express();
 const Worker = require("./mediasoup/worker");
 const http = require("http");
+global.fetch = require("node-fetch");
 const consola = require("consola");
 const { runAtEveryMSInterval } = require("./methods");
 
