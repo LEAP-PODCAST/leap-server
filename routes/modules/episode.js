@@ -19,6 +19,69 @@ module.exports = ({ io }) => {
   });
 
   return {
+    get: new ExpressRoute({
+      type: "GET",
+
+      model: {
+        query: {
+          podcastUrlName: {
+            type: "string",
+            required: true
+          },
+          episodeUrlName: {
+            type: "string",
+            required: true
+          }
+        }
+      },
+
+      middleware: [],
+
+      async function(req, res) {
+        const { podcastUrlName, episodeUrlName } = req.query;
+
+        // Get podcast and episode
+        const [
+          podcasts
+        ] = await mysql.getPodcasts(
+          "SELECT * FROM podcasts WHERE urlName = ?",
+          [podcastUrlName]
+        );
+        if (!podcasts.length) {
+          return {
+            error: "No podcast found by that urlName",
+            status: 400
+          };
+        }
+
+        const podcast = podcasts[0];
+
+        const [
+          episodes
+        ] = await mysql.getEpisodes(
+          `SELECT * FROM podcast_${podcast.id}_episodes WHERE urlName = ?`,
+          [episodeUrlName]
+        );
+        if (!episodes.length) {
+          return {
+            error: "No episode found by that urlName",
+            status: 400
+          };
+        }
+
+        const episode = episodes[0];
+
+        if (!episode.isLive) {
+          return {
+            error: "That episode is no longer live",
+            status: 400
+          };
+        }
+
+        return { ok: true, data: { podcast, episode } };
+      }
+    }),
+
     /**
      * Get all live episodes
      */
