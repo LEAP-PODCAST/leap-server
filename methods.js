@@ -20,6 +20,9 @@ module.exports = {
   },
 
   sanitizeNameForURL(str) {
-    return str.replace(" ", "-");
+    return str
+      .replace(/ /g, "-")
+      .replace(/[^a-z0-9-]/gim, "")
+      .toLowerCase();
   }
 };
