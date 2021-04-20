@@ -404,9 +404,6 @@ module.exports = ({ io }) => {
         }
 
         const userProfile = userProfiles[0];
-        const { username } = userProfile;
-        req.socket.username = username;
-
         const { roomId } = req.socket;
 
         // TODO temporary limit on viewers / podcasts in a room

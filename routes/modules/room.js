@@ -55,7 +55,6 @@ module.exports = ({ io }) => {
 
         const userProfile = userProfiles[0];
         const { username } = userProfile;
-        req.socket.username = username;
 
         // TODO temporary limit on viewers / podcasts in a room
         if (io.getSocketCount(roomId) >= 16) {
