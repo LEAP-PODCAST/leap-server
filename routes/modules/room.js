@@ -8,7 +8,11 @@ const Router = require("../../mediasoup/router.js");
 const { getLocalStamp } = require("../../methods.js");
 
 module.exports = ({ io }) => {
-  const { verifySocketId, verifyUserToken } = require("../middleware.js")({
+  const {
+    verifySocketId,
+    verifyUserToken,
+    verifyRoomId
+  } = require("../middleware.js")({
     io
   });
 
@@ -117,6 +121,24 @@ module.exports = ({ io }) => {
             room
           }
         };
+      }
+    }),
+
+    requestToJoinAsGuest: new ExpressRoute({
+      type: "POST",
+
+      model: {},
+
+      middleware: [verifySocketId, verifyUserToken, verifyRoomId],
+
+      async function(req, res) {
+        // TODO check if user has been blocked from podcast
+
+        req.room.users[req.socket.id].isRequestingToJoinAsGuest = true;
+
+        io.in(req.socket.roomId).emit("chat/users", req.room.users);
+
+        return { ok: true };
       }
     })
   };
