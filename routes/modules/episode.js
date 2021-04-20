@@ -321,6 +321,8 @@ module.exports = ({ io }) => {
 
         // Get the roomId, used as an id in rooms and join socket room
         req.socket.roomId = roomId;
+        req.socket.podcastId = podcast.id;
+        req.socket.episodeId = episode.id;
 
         // TODO temporary limit on viewers / podcasts in a room
         if (io.getSocketCount(roomId) >= 16) {
@@ -356,6 +358,8 @@ module.exports = ({ io }) => {
 
         // Get the RTP capabilities of the router
         const routerRtpCapabilities = router.rtpCapabilities;
+
+        console.log(room);
 
         // Respond to client with router capabilites and streams array
         return {
@@ -416,9 +420,42 @@ module.exports = ({ io }) => {
 
         const room = rooms.get(roomId);
 
+        const { episodeId, podcastId } = req.socket;
+
+        if (!episodeId || !podcastId) {
+          return {
+            error:
+              "No episodeId or podcastId attached to socketId, did you call episode/watch route yet?",
+            status: 400
+          };
+        }
+
+        const [
+          episodes
+        ] = mysql.getEpisodes(
+          `SELECT * FROM podcast_${podcastId}_episodes WHERE id = ? LIMIT 1`,
+          [episodeId]
+        );
+        if (!episodes.length) {
+          return {
+            error: `No episode found by episodeId ${episodeId}`,
+            status: 500
+          };
+        }
+
+        // Check if user is host or guest and assign proper role
+        const { hosts, guests } = episodes[0];
+        const isHost = hosts.find(({ id }) => id === userProfile.id);
+        const isGuest = guests.find(({ id }) => id === userProfile.id);
+
+        let role = "";
+        if (isHost) role = "host";
+        if (isGuest) role = "guest";
+
         // Add user as user in room
         room.users[req.socket.id] = {
           userProfile,
+          role,
           producerIds: {
             webcam: "",
             mic: ""
