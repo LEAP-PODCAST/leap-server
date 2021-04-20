@@ -134,6 +134,12 @@ module.exports = ({ io }) => {
       async function(req, res) {
         // TODO check if user has been blocked from podcast
 
+        if (req.room.users[req.socket.id].isRequestingToJoinAsGuest) {
+          return {
+            ok: false,
+            error: "You're already requesting to join as a guest"
+          };
+        }
         req.room.users[req.socket.id].isRequestingToJoinAsGuest = true;
 
         io.in(req.socket.roomId).emit("chat/users", req.room.users);
