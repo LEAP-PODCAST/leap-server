@@ -11,7 +11,8 @@ module.exports = ({ io }) => {
   const {
     verifySocketId,
     verifyUserToken,
-    verifyRoomId
+    verifyRoomId,
+    verifyUserIsHostOfRoom
   } = require("../middleware.js")({
     io
   });
@@ -143,6 +144,43 @@ module.exports = ({ io }) => {
         req.room.users[req.socket.id].isRequestingToJoinAsGuest = true;
 
         io.in(req.socket.roomId).emit("chat/users", req.room.users);
+
+        return { ok: true };
+      }
+    }),
+
+    addUserAsGuest: new ExpressRoute({
+      type: "PUT",
+
+      model: {
+        body: {
+          socketId: {
+            type: "string",
+            required: true
+          }
+        }
+      },
+
+      middleware: [
+        verifySocketId,
+        verifyRoomId,
+        verifyUserToken,
+        verifyUserIsHostOfRoom
+      ],
+
+      async function(req, res) {
+        const { socketId } = req.body;
+
+        // Check if user is found in room by socketId
+        if (!req.room.users[socketId]) {
+          return {
+            error: `No user found by socketId ${socketId} in room ${req.socket.roomId}`
+          };
+        }
+
+        req.room.users[socketId].role = "guest";
+
+        io.to(req.socket.roomId).emit("chat/users", req.room.users);
 
         return { ok: true };
       }
