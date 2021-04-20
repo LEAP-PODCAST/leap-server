@@ -99,10 +99,10 @@ module.exports = async ({ io }) => {
       socket.leave(socket.roomId);
 
       // Tell all clients that user has joined
-      io.in(socket.roomId).emit("chat/message", {
-        type: "action",
-        text: `${socket.username} left the room`
-      });
+      // io.in(socket.roomId).emit("chat/message", {
+      //   type: "action",
+      //   text: `${socket.username} left the room`
+      // });
 
       // Emit events for all producers and consumers that the stream has ended
       const sendTransport = sendTransports.get(socket.id);

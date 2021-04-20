@@ -432,7 +432,7 @@ module.exports = ({ io }) => {
 
         const [
           episodes
-        ] = mysql.getEpisodes(
+        ] = await mysql.getEpisodes(
           `SELECT * FROM podcast_${podcastId}_episodes WHERE id = ? LIMIT 1`,
           [episodeId]
         );
@@ -445,8 +445,13 @@ module.exports = ({ io }) => {
 
         // Check if user is host or guest and assign proper role
         const { hosts, guests } = episodes[0];
-        const isHost = hosts.find(({ id }) => id === userProfile.id);
-        const isGuest = guests.find(({ id }) => id === userProfile.id);
+
+        const isHost = hosts.length
+          ? hosts.find(({ id }) => id === userProfile.id)
+          : false;
+        const isGuest = guests.length
+          ? guests.find(({ id }) => id === userProfile.id)
+          : false;
 
         let role = "";
         if (isHost) role = "host";
@@ -465,7 +470,7 @@ module.exports = ({ io }) => {
         // Update users array for all users
         io.in(roomId).emit("chat/users", room.users);
 
-        return { ok: true };
+        return { ok: true, data: { role } };
       }
     }),
 

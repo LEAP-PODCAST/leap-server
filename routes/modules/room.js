@@ -101,10 +101,10 @@ module.exports = ({ io }) => {
         const routerRtpCapabilities = router.rtpCapabilities;
 
         // Tell all clients that user has joined
-        io.in(roomId).emit("chat/message", {
-          type: "action",
-          text: `${username} joined the room`
-        });
+        // io.in(roomId).emit("chat/message", {
+        //   type: "action",
+        //   text: `${username} joined the room`
+        // });
 
         // Update users array for all users
         io.in(roomId).emit("chat/users", room.users);
