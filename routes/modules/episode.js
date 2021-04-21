@@ -513,13 +513,12 @@ module.exports = ({ io }) => {
         }
 
         // Tell all clients, room is closed
-        io.to(req.socket.roomId).emit("episode/end");
-
-        // Destroy the room
-        await Router.close(req.socket.roomId);
-        rooms.delete(req.socket.roomId);
+        io.to(req.socket.roomId).emit("episode/end", {
+          socketId: req.socket.id
+        });
 
         // TODO Stop recording if recording
+        // TODO manually close all streams here
 
         return { ok: true };
       }
