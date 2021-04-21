@@ -149,7 +149,7 @@ module.exports = ({ io }) => {
       }
     }),
 
-    addUserAsGuest: new ExpressRoute({
+    changeUserRole: new ExpressRoute({
       type: "PUT",
 
       model: {
@@ -157,6 +157,15 @@ module.exports = ({ io }) => {
           socketId: {
             type: "string",
             required: true
+          },
+          role: {
+            type: "string",
+            required: true,
+            minLength: 0,
+            validator: role => ({
+              isValid: ["", "guest"].includes(role),
+              error: `${role} is not a valid role`
+            })
           }
         }
       },
@@ -169,7 +178,7 @@ module.exports = ({ io }) => {
       ],
 
       async function(req, res) {
-        const { socketId } = req.body;
+        const { socketId, role } = req.body;
 
         // Check if user is found in room by socketId
         if (!req.room.users[socketId]) {
@@ -178,7 +187,29 @@ module.exports = ({ io }) => {
           };
         }
 
-        req.room.users[socketId].role = "guest";
+        // Check if user is producing
+        // Emit events for all producers and consumers that the stream has ended
+        const sendTransport = sendTransports.get(socketId);
+
+        if (sendTransport) {
+          const producerIds = Array.from(sendTransport._producers.keys());
+
+          // Tell all consumers and the producer that the stream has handed (possibly in error)
+          producerIds.forEach(producerId => {
+            io.in(req.socket.roomId).emit(`producer/close/${producerId}`);
+
+            const { success, error } = Router.removeStreamByProducerId({
+              roomId: req.socket.roomId,
+              producerId
+            });
+
+            if (!success) {
+              console.error(error);
+            }
+          });
+        }
+
+        req.room.users[socketId].role = role;
 
         io.to(req.socket.roomId).emit("chat/users", req.room.users);
 
