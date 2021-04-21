@@ -8,7 +8,12 @@ const Router = require("../../mediasoup/router.js");
 const { getLocalStamp } = require("../../methods.js");
 
 module.exports = ({ io }) => {
-  const { verifySocketId, verifyUserToken } = require("../middleware.js")({
+  const {
+    verifySocketId,
+    verifyUserToken,
+    verifyRoomId,
+    verifyUserIsHostOfRoom
+  } = require("../middleware.js")({
     io
   });
 
@@ -55,7 +60,6 @@ module.exports = ({ io }) => {
 
         const userProfile = userProfiles[0];
         const { username } = userProfile;
-        req.socket.username = username;
 
         // TODO temporary limit on viewers / podcasts in a room
         if (io.getSocketCount(roomId) >= 16) {
@@ -101,10 +105,10 @@ module.exports = ({ io }) => {
         const routerRtpCapabilities = router.rtpCapabilities;
 
         // Tell all clients that user has joined
-        io.in(roomId).emit("chat/message", {
-          type: "action",
-          text: `${username} joined the room`
-        });
+        // io.in(roomId).emit("chat/message", {
+        //   type: "action",
+        //   text: `${username} joined the room`
+        // });
 
         // Update users array for all users
         io.in(roomId).emit("chat/users", room.users);
@@ -118,6 +122,98 @@ module.exports = ({ io }) => {
             room
           }
         };
+      }
+    }),
+
+    requestToJoinAsGuest: new ExpressRoute({
+      type: "POST",
+
+      model: {},
+
+      middleware: [verifySocketId, verifyUserToken, verifyRoomId],
+
+      async function(req, res) {
+        // TODO check if user has been blocked from podcast
+
+        if (req.room.users[req.socket.id].isRequestingToJoinAsGuest) {
+          return {
+            ok: false,
+            error: "You're already requesting to join as a guest"
+          };
+        }
+        req.room.users[req.socket.id].isRequestingToJoinAsGuest = true;
+
+        io.in(req.socket.roomId).emit("chat/users", req.room.users);
+
+        return { ok: true };
+      }
+    }),
+
+    changeUserRole: new ExpressRoute({
+      type: "PUT",
+
+      model: {
+        body: {
+          socketId: {
+            type: "string",
+            required: true
+          },
+          role: {
+            type: "string",
+            required: true,
+            minLength: 0,
+            validator: role => ({
+              isValid: ["", "guest"].includes(role),
+              error: `${role} is not a valid role`
+            })
+          }
+        }
+      },
+
+      middleware: [
+        verifySocketId,
+        verifyRoomId,
+        verifyUserToken,
+        verifyUserIsHostOfRoom
+      ],
+
+      async function(req, res) {
+        const { socketId, role } = req.body;
+
+        // Check if user is found in room by socketId
+        if (!req.room.users[socketId]) {
+          return {
+            error: `No user found by socketId ${socketId} in room ${req.socket.roomId}`
+          };
+        }
+
+        // Check if user is producing
+        // Emit events for all producers and consumers that the stream has ended
+        const sendTransport = sendTransports.get(socketId);
+
+        if (sendTransport) {
+          const producerIds = Array.from(sendTransport._producers.keys());
+
+          // Tell all consumers and the producer that the stream has handed (possibly in error)
+          producerIds.forEach(producerId => {
+            io.in(req.socket.roomId).emit(`producer/close/${producerId}`);
+
+            const { success, error } = Router.removeStreamByProducerId({
+              roomId: req.socket.roomId,
+              producerId
+            });
+
+            if (!success) {
+              console.error(error);
+            }
+          });
+        }
+
+        req.room.users[socketId].role = role;
+
+        io.to(req.socket.roomId).emit("chat/users", req.room.users);
+
+        return { ok: true };
       }
     })
   };

@@ -121,9 +121,10 @@ module.exports = ({ io }) => {
           username,
           fullUsername,
           firstName,
-          lastName
-        ) VALUES (?, ?, ?, ?)`,
-          [lowerUsername, username, firstName, lastName]
+          lastName,
+          podcasts
+        ) VALUES (?, ?, ?, ?, ?)`,
+          [lowerUsername, username, firstName, lastName, ""]
         );
         if (!result || typeof result.insertId !== "number") {
           return {

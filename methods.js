@@ -20,6 +20,9 @@ module.exports = {
   },
 
   sanitizeNameForURL(str) {
-    return str.replace(" ", "-");
+    return str
+      .replace(/ /g, "-") // Replace all spaces with dashes (between words)
+      .replace(/[^a-z0-9-]/gim, "") // Remove all non-alphanumerica chars
+      .toLowerCase();
   }
 };

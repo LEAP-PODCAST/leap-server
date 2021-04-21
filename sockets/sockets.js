@@ -94,15 +94,76 @@ module.exports = async ({ io }) => {
       });
     });
 
+    // Leave roomId
+
+    socket.on("room/leave", async function () {
+      // Leave the socket room
+      socket.leave(socket.roomId);
+
+      // Tell all clients that user has joined
+      // io.in(socket.roomId).emit("chat/message", {
+      //   type: "action",
+      //   text: `${socket.username} left the room`
+      // });
+
+      // Emit events for all producers and consumers that the stream has ended
+      const sendTransport = sendTransports.get(socket.id);
+
+      if (sendTransport) {
+        const producerIds = Array.from(sendTransport._producers.keys());
+
+        // Tell all consumers and the producer that the stream has handed (possibly in error)
+        producerIds.forEach(producerId => {
+          io.in(socket.roomId).emit(`producer/close/${producerId}`);
+
+          const { success, error } = Router.removeStreamByProducerId({
+            roomId: socket.roomId,
+            producerId
+          });
+
+          if (!success) {
+            console.error(error);
+          }
+        });
+      }
+
+      // Close the viewers transport
+      await Transport.closeAll(socket.id);
+
+      // Get the rooms current socket count
+      const socketCount = io.getSocketCount(socket.roomId);
+
+      // Update users array for all users
+      const room = rooms.get(socket.roomId);
+      if (room) {
+        delete room.users[socket.id];
+        io.in(socket.roomId).emit("chat/users", room.users);
+      }
+
+      // If socket is last to leave room, close the router
+      if (!socketCount) {
+        await Router.close(socket.roomId);
+        rooms.delete(socket.roomId);
+      }
+
+      // Remove any and all params on socket object related to room
+      delete socket.roomId;
+      delete socket.podcastId;
+      delete socket.episodeId;
+      delete socket.$streams;
+
+      // TODO if all hosts / guests leave, end the episode
+    });
+
     socket.on("disconnect", async function () {
       // Leave the socket room
       socket.leave(socket.roomId);
 
       // Tell all clients that user has joined
-      io.in(socket.roomId).emit("chat/message", {
-        type: "action",
-        text: `${socket.username} left the room`
-      });
+      // io.in(socket.roomId).emit("chat/message", {
+      //   type: "action",
+      //   text: `${socket.username} left the room`
+      // });
 
       // Emit events for all producers and consumers that the stream has ended
       const sendTransport = sendTransports.get(socket.id);

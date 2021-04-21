@@ -80,6 +80,24 @@ module.exports = ({ io }) => ({
   },
 
   /**
+   * Verify the user is a host in the room
+   * @param {Request} req
+   * @param {Response} res
+   */
+  verifyUserIsHostOfRoom(req, res) {
+    const { id, roomId } = req.socket;
+
+    // Get the room
+    const room = rooms.get(roomId);
+
+    if (!room) {
+      return { error: `No room found by roomId ${roomId}`, status: 500 };
+    }
+
+    return { ok: room.users[id] && room.users[id].role === "host" };
+  },
+
+  /**
    * Verify the episode exists in the database
    * @param {Request} req
    * @param {Response} res

@@ -111,7 +111,6 @@ module.exports = ({ io }) => {
         for (const hostProfile of hostProfiles) {
           const podcastIds = hostProfile.podcasts.map(p => p.id);
           podcastIds.push(result.insertId);
-          console.log(podcastIds);
 
           const [
             result2

@@ -32,7 +32,6 @@ module.exports = ({ io }) => {
       function(req, res) {
         const { text } = req.body;
 
-        // TODO change username to userId
         io.in(req.socket.roomId).emit("chat/message", {
           type: "message",
           text,

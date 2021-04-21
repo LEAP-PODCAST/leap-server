@@ -97,7 +97,7 @@ module.exports = {
 
       if (typeof param === "string") {
         // If max length
-        if (property.required && param.length < 1) {
+        if (property.required && param.length < (property.minLength ?? 1)) {
           return { error: `${key} is required` };
         }
 
