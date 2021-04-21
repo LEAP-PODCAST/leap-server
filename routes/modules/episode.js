@@ -359,8 +359,6 @@ module.exports = ({ io }) => {
         // Get the RTP capabilities of the router
         const routerRtpCapabilities = router.rtpCapabilities;
 
-        console.log(room);
-
         // Respond to client with router capabilites and streams array
         return {
           ok: true,
