@@ -10,10 +10,10 @@ module.exports = async () => {
     socials TEXT,
     podcasts TEXT,
     createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
-    dob INTEGER NOT NULL
+    dob DATE
   )`);
 
-  await mysql.exec(`CREATE TABLE IF NOT EXISTS l (
+  await mysql.exec(`CREATE TABLE IF NOT EXISTS user_accounts (
     profileId INTEGER PRIMARY KEY NOT NULL,
     email VARCHAR(32) UNIQUE NOT NULL,
     password VARCHAR(64) NOT NULL,

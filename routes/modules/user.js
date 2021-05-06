@@ -70,7 +70,12 @@ module.exports = ({ io }) => {
           },
           dob: {
             type: "string",
-            required: true
+            required: true,
+            validator: dob => ({
+              isValid:
+                /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(dob) && dob.length === 10,
+              error: "That is not a valid date format"
+            })
           }
         },
         headers: {
@@ -120,15 +125,20 @@ module.exports = ({ io }) => {
           return { error: "That email is not available", status: 400 };
         }
 
-        const dobDate = new Date(dob);
-        // Verify date is not invalid
-        if (dobDate == "Invalid Date") {
-          return {
-            error: `The date you provided, "${dob}", was invalid`,
-            status: 400
-          };
+        // Verify date is real date
+        const [year, month, day] = dob.split("-");
+        // Check if year is less than 1900 or greater than current year
+        if (year < 1900 || year > new Date().getFullYear()) {
+          return { error: `Birth year is out of range`, status: 400 };
         }
-        const dobInt = Math.floor(dobDate.getTime() / 1000 / 60 / 60 / 24);
+        // Check if is not a real month
+        if (month < 1 || month > 12) {
+          return { error: "Birth month is out of range", status: 400 };
+        }
+        // Check if is not a real day
+        if (day < 1 || day > 31) {
+          return { error: "Birth day is out of range", status: 400 };
+        }
 
         // Create a user profile
         var [result] = await mysql.exec(
@@ -138,12 +148,13 @@ module.exports = ({ io }) => {
           firstName,
           lastName,
           podcasts,
-          socials
+          socials,
           dob
-        ) VALUES (?, ?, ?, ?, ?, ?)`,
-          [lowerUsername, username, firstName, lastName, "", {}, dobInt]
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [lowerUsername, username, firstName, lastName, "", {}, dob]
         );
         if (!result || typeof result.insertId !== "number") {
+          console.log(result);
           return {
             error: "An error occurred creating this user profile",
             status: 500
