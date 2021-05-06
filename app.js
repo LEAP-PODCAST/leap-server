@@ -65,14 +65,14 @@ global.consumers = new Map();
     const res = await global.mysql.exec(query, params);
     for (let i = 0; i < res[0].length; i++) {
       const p = res[0][i];
-      !p.socials ? (p.socials = []) : (p.socials = p.socials.split(","));
+      !p.socials ? (p.socials = {}) : JSON.parse(p.socials);
 
       if (p.podcasts.length) {
         const [podcasts] = await mysql.exec(
           `SELECT * FROM podcasts WHERE id IN (${p.podcasts})`
         );
         p.podcasts = podcasts;
-      }
+      } else p.podcasts = [];
     }
     return res;
   };
@@ -87,7 +87,7 @@ global.consumers = new Map();
           `SELECT * FROM user_profiles WHERE id IN (${p.hosts})`
         );
         p.hosts = hosts;
-      }
+      } else p.hosts = [];
     }
     return res;
   };
@@ -102,14 +102,14 @@ global.consumers = new Map();
           `SELECT * FROM user_profiles WHERE id IN (${p.hosts})`
         );
         p.hosts = hosts;
-      }
+      } else p.hosts = [];
 
       if (p.guests.length) {
         const [guests] = await mysql.exec(
           `SELECT * FROM user_profiles WHERE id IN (${p.guests})`
         );
         p.guests = guests;
-      }
+      } else p.guests = [];
     }
     return res;
   };
@@ -124,14 +124,14 @@ global.consumers = new Map();
           `SELECT * FROM user_profiles WHERE id IN (${p.hosts})`
         );
         p.hosts = hosts;
-      }
+      } else p.hosts = [];
 
       if (p.guests.length) {
         const [guests] = await mysql.exec(
           `SELECT * FROM user_profiles WHERE id IN (${p.guests})`
         );
         p.guests = guests;
-      }
+      } else p.guests = [];
     }
     return res;
   };
