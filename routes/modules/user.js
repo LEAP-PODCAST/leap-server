@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const regex = require("../../data/regex");
 
 module.exports = ({ io }) => {
-  const { verifyUserToken } = require("../middleware")({ io });
+  const { verifySocketId, verifyUserToken } = require("../middleware")({ io });
 
   return {
     /**
@@ -350,7 +350,7 @@ module.exports = ({ io }) => {
 
       model: {},
 
-      middleware: [verifyUserToken],
+      middleware: [verifySocketId, verifyUserToken],
 
       async function(req, res) {
         const id = req.user.userAccount.profileId;
@@ -364,6 +364,9 @@ module.exports = ({ io }) => {
         if (!userProfiles.length) {
           return { error: `No user profile found by id ${id}`, status: 500 };
         }
+
+        // Add user to io users store
+        io.users.set(id, socket.id);
 
         return {
           ok: true,

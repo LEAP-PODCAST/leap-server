@@ -12,12 +12,12 @@ module.exports = async () => {
     createdAt TIMESTAMP NOT NULL DEFAULT NOW()
   )`);
 
-  await mysql.exec(`CREATE TABLE IF NOT EXISTS l (
+  await mysql.exec(`CREATE TABLE IF NOT EXISTS user_accounts (
     profileId INTEGER PRIMARY KEY NOT NULL,
     email VARCHAR(32) UNIQUE NOT NULL,
     password VARCHAR(64) NOT NULL,
     salt VARCHAR(64) NOT NULL,
-    receiveNotifications BOOLEAN NOT NULL,
+    receiveEmails BOOLEAN NOT NULL,
     isEmailVerified BOOL
   )`);
 
@@ -27,13 +27,6 @@ module.exports = async () => {
     id VARCHAR(16) NOT NULL
   )`);
 
-  await mysql.exec(`CREATE TABLE IF NOT EXISTS email_invites (
-    id INTEGER PRIMARY KEY AUTO_INCREMENT,
-    email VARCHAR(64) NOT NULL,
-    podcastId INTEGER,
-    episodeId INTEGER
-  )`);
-
   await mysql.exec(`CREATE TABLE IF NOT EXISTS podcasts (
     id INTEGER PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(64) UNIQUE NOT NULL,
@@ -41,16 +34,6 @@ module.exports = async () => {
     iconUrl TEXT,
     hosts TEXT
   )`);
-
-  // TODO for each podcast create a seperate table for the corresponding comments
-
-  // await mysql.exec(`CREATE TABLE IF NOT EXISTS comments (
-  //   id INTEGER PRIMARY KEY AUTO_INCREMENT,
-  //   text VARCHAR(256) NOT NULL,
-  //   profileId INTEGER NOT NULL,
-  //   createdAt TIMESTAMP NOT NULL DEFAULT NOW()
-  //   timestamp INTEGER
-  // )`)
 
   await mysql.exec(`CREATE TABLE IF NOT EXISTS scheduled_podcast (
     id INTEGER PRIMARY KEY AUTO_INCREMENT,
@@ -69,6 +52,23 @@ module.exports = async () => {
 
   await mysql.exec(`CREATE TABLE IF NOT EXISTS email_list (
     email VARCHAR(32) PRIMARY KEY,
+    timestamp INTEGER NOT NULL
+  )`);
+
+  await mysql.exec(`CREATE TABLE IF NOT EXISTS notifications (
+    id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    text TEXT,
+    unread BOOL,
+    timestamp INTEGER
+  )`);
+
+  await mysql.exec(`CREATE TABLE IF NOT EXISTS invites (
+    id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    from_userid INTEGER NOT NULL,
+    to_email VARCHAR(32) NOT NULL,
+    role VARCHAR(8) NOT NULL,
+    podcastId INTEGER NOT NULL,
+    episodeId INTEGER NOT NULL,
     timestamp INTEGER NOT NULL
   )`);
 };
