@@ -9,7 +9,8 @@ module.exports = async () => {
     bio VARCHAR(128),
     socials TEXT,
     podcasts TEXT,
-    createdAt TIMESTAMP NOT NULL DEFAULT NOW()
+    createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
+    dob INTEGER NOT NULL
   )`);
 
   await mysql.exec(`CREATE TABLE IF NOT EXISTS l (

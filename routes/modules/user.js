@@ -67,6 +67,10 @@ module.exports = ({ io }) => {
           receiveNotifications: {
             type: "boolean",
             required: true
+          },
+          dob: {
+            type: "string",
+            required: true
           }
         },
         headers: {
@@ -87,7 +91,8 @@ module.exports = ({ io }) => {
           lastName,
           email,
           password,
-          receiveNotifications
+          receiveNotifications,
+          dob
         } = req.body;
 
         const lowerUsername = username.toLowerCase();
@@ -115,16 +120,28 @@ module.exports = ({ io }) => {
           return { error: "That email is not available", status: 400 };
         }
 
-        // // Create a user profile
+        const dobDate = new Date(dob);
+        // Verify date is not invalid
+        if (dobDate == "Invalid Date") {
+          return {
+            error: `The date you provided, "${dob}", was invalid`,
+            status: 400
+          };
+        }
+        const dobInt = Math.floor(dobDate.getTime() / 1000 / 60 / 60 / 24);
+
+        // Create a user profile
         var [result] = await mysql.exec(
           `INSERT INTO user_profiles (
           username,
           fullUsername,
           firstName,
           lastName,
-          podcasts
-        ) VALUES (?, ?, ?, ?, ?)`,
-          [lowerUsername, username, firstName, lastName, ""]
+          podcasts,
+          socials
+          dob
+        ) VALUES (?, ?, ?, ?, ?, ?)`,
+          [lowerUsername, username, firstName, lastName, "", {}, dobInt]
         );
         if (!result || typeof result.insertId !== "number") {
           return {
