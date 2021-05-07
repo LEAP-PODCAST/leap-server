@@ -14,7 +14,7 @@ function validateParams(model, params, nestedText) {
 
     // If param is not provided and not required
     if (typeof param === "undefined" && !property.required) {
-      return { ok: true };
+      continue;
     }
 
     // If param is not provded
@@ -53,6 +53,8 @@ function validateParams(model, params, nestedText) {
 
       // Verify keys if child model
       if (property.model) {
+        console.log(prop);
+
         // Verify model is an object
         if (!(property.model instanceof Object)) {
           return {
