@@ -53,8 +53,6 @@ function validateParams(model, params, nestedText) {
 
       // Verify keys if child model
       if (property.model) {
-        console.log(prop);
-
         // Verify model is an object
         if (!(property.model instanceof Object)) {
           return {
