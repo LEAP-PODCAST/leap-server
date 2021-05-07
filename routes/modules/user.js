@@ -145,13 +145,15 @@ module.exports = ({ io }) => {
           `INSERT INTO user_profiles (
           username,
           fullUsername,
+          avatarUrl,
           firstName,
           lastName,
           podcasts,
           socials,
+          bio,
           dob
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [lowerUsername, username, firstName, lastName, "", {}, dob]
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [lowerUsername, username, "", firstName, lastName, "", {}, "", dob]
         );
         if (!result || typeof result.insertId !== "number") {
           console.log(result);
@@ -211,9 +213,10 @@ module.exports = ({ io }) => {
         const [result2] = await mysql.exec(
           `INSERT INTO user_account_email_validations (
           profileId,
+          email,
           id
-        ) VALUES (?, ?)`,
-          [userProfile.id, emailId]
+        ) VALUES (?, ?, ?)`,
+          [userProfile.id, lowerEmail, emailId]
         );
 
         SES.sendEmail({
