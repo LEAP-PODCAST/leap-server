@@ -49,16 +49,33 @@ module.exports = ({ io }) => {
 
       async function(req, res) {
         // Get from the request body, only the data from the model
-        const keysToLookFor = Object.keys(this.model);
+        const keysToLookFor = Object.keys(this.model.body);
 
-        let updates = {};
+        const updates = {};
 
         // Get only the keys you can update to filter out any junk
         for (const key of Object.keys(req.body)) {
           // If we are cool with accepting this updated value
           if (keysToLookFor.includes(key)) {
+            // Custom handler for social
+            if (key === "socials") {
+              // Get only the socials we support. This way the user cannot add custom data
+              // to the database
+              const socials = {};
+              const socialKeys = Object.keys(this.model.body.socials.model);
+              for (const socialKey of socialKeys) {
+                socials[socialKey] = req.body.socials[socialKey];
+              }
+              updates.socials = JSON.stringify(socials);
+              continue;
+            }
             updates[key] = req.body[key];
           }
+        }
+
+        const keys = Object.keys(updates);
+        if (!keys.length) {
+          return { error: "No updates provided", status: 400 };
         }
 
         // Get the user profile
@@ -75,26 +92,16 @@ module.exports = ({ io }) => {
           };
         }
 
-        // Combine old and new values to get new user profile data
-        updates = {
-          ...users[0],
-          ...updates
-        };
-
         // Create sql update string
-        const update = Object.keys(updates)
-          .map(k => `${k} = ${updates[k]}`)
-          .join(", ");
-        console.log(update);
+        const update = keys.join(" = ?, ") + " = ?";
+        const values = keys.map(k => updates[k]);
 
         const [
           result
         ] = await mysql.exec(
           `UPDATE user_profiles SET ${update} WHERE id = ?`,
-          [req.user.userAccount.profileId]
+          [...values, req.user.userAccount.profileId]
         );
-
-        console.log(result);
 
         return { ok: true };
       }
