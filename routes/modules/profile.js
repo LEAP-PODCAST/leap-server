@@ -16,21 +16,32 @@ module.exports = ({ io }) => {
       type: "PUT",
 
       model: {
-        firstName: {
-          type: "string"
-        },
-        lastName: {
-          type: "string"
-        },
-        bio: {
-          type: "string",
-          maxLength: 128
-        },
-        socials: {
-          type: "object"
-        },
-        dob: {
-          type: "string"
+        body: {
+          firstName: {
+            type: "string"
+          },
+          lastName: {
+            type: "string"
+          },
+          bio: {
+            type: "string",
+            maxLength: 128
+          },
+          socials: {
+            type: "object",
+            model: {
+              instagram: {
+                type: "string",
+                required: true,
+                maxLength: 32
+              },
+              twitter: {
+                type: "string",
+                required: true,
+                maxLength: 15
+              }
+            }
+          }
         }
       },
 

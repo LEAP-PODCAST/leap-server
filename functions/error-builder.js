@@ -1,3 +1,107 @@
+/**
+ * Validate the params passed into a Socket event function
+ * @param {object} model The model to base params on
+ * @param {object} params The params passed from client
+ * @param {string} nestedText Parent property names
+ */
+function validateParams(model, params, nestedText) {
+  for (const key in model) {
+    const prop = `${nestedText}.${key}`;
+
+    // Get the required param
+    const property = model[key];
+    const param = params[key];
+
+    // If param is not provided and not required
+    if (typeof param === "undefined" && !property.required) {
+      return { ok: true };
+    }
+
+    // If param is not provded
+    if (typeof param === "undefined" && property.required) {
+      return {
+        ok: false,
+        error: `${prop} is required, but was not provided.`
+      };
+    }
+
+    // If expecting an array
+    // NOTE typeof param will equal object even if its an array
+    // Thats why the type check below is an else if
+    if (property.type === "array") {
+      if (!(param instanceof Array)) {
+        return { error: `${prop} was not an instance of Array` };
+      }
+    }
+
+    // If incorrect type
+    else if (typeof param !== property.type) {
+      return {
+        ok: false,
+        error: `${prop} was type ${typeof param}, when it was supposed to be type ${
+          property.type
+        }`
+      };
+    }
+
+    // If it's supposed to be an object
+    if (property.type === "object") {
+      // If not an object
+      if (!(param instanceof Object)) {
+        return { error: `${prop} was not an instance of Object` };
+      }
+
+      // Verify keys if child model
+      if (property.model) {
+        // Verify model is an object
+        if (!(property.model instanceof Object)) {
+          return {
+            error: `${prop}'s model property was not of instance Object. This is an internal server error`
+          };
+        }
+
+        // If is an array when expecting an object
+        if (param instanceof Array) {
+          return {
+            error: `${prop} is an instance of Array instead of Object`
+          };
+        }
+
+        // Loop through nested model keys
+        const result = validateParams(property.model, param, `${prop}`);
+        if (!result.ok) return result;
+      }
+    }
+
+    if (typeof param === "string") {
+      // If max length
+      if (property.required && param.length < (property.minLength ?? 1)) {
+        return { error: `${prop} is required` };
+      }
+
+      if (
+        typeof property.maxLength === "number" &&
+        param.length > property.maxLength
+      ) {
+        return {
+          ok: false,
+          error: `${prop} is longer than max length of ${property.maxLength}`
+        };
+      }
+    }
+
+    // Run validator function
+    if (property.validator && typeof property.validator === "function") {
+      const { isValid, error } = property.validator(param);
+      if (!isValid) {
+        return { ok: false, error };
+      }
+    }
+  }
+
+  return { ok: true };
+}
+
 module.exports = {
   /**
    * Build a missing property error
@@ -54,73 +158,5 @@ module.exports = {
     return "";
   },
 
-  /**
-   * Validate the params passed into a Socket event function
-   * @param {object} params The model to base params on
-   * @param {object} passed The params passed from client
-   */
-  validateParams(model, params) {
-    for (const key in model) {
-      // Get the required param
-      const property = model[key];
-      const param = params[key];
-
-      // If param is not provided and not required
-      if (typeof param === "undefined" && !property.required) {
-        return { ok: true };
-      }
-
-      // If param is not provded
-      if (typeof param === "undefined" && property.required) {
-        return {
-          ok: false,
-          error: `${key} is required, but was not provided.`
-        };
-      }
-
-      // If incorrect type
-      if (property.type === "array") {
-        if (!(param instanceof Array)) {
-          return {
-            ok: false,
-            error: `${key} was not an array, when it was supposed to be type array`
-          };
-        }
-      } else if (typeof param !== property.type) {
-        return {
-          ok: false,
-          error: `${key} was type ${typeof param}, when it was supposed to be type ${
-            property.type
-          }`
-        };
-      }
-
-      if (typeof param === "string") {
-        // If max length
-        if (property.required && param.length < (property.minLength ?? 1)) {
-          return { error: `${key} is required` };
-        }
-
-        if (
-          typeof property.maxLength === "number" &&
-          param.length > property.maxLength
-        ) {
-          return {
-            ok: false,
-            error: `${key} is longer than max length of ${property.maxLength}`
-          };
-        }
-      }
-
-      // Run validator function
-      if (property.validator && typeof property.validator === "function") {
-        const { isValid, error } = property.validator(param);
-        if (!isValid) {
-          return { ok: false, error };
-        }
-      }
-    }
-
-    return { ok: true };
-  }
+  validateParams
 };
