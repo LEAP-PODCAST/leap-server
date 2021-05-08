@@ -32,12 +32,10 @@ module.exports = ({ io }) => {
             model: {
               instagram: {
                 type: "string",
-                required: true,
                 maxLength: 32
               },
               twitter: {
                 type: "string",
-                required: true,
                 maxLength: 15
               }
             }
@@ -64,7 +62,8 @@ module.exports = ({ io }) => {
               const socials = {};
               const socialKeys = Object.keys(this.model.body.socials.model);
               for (const socialKey of socialKeys) {
-                socials[socialKey] = req.body.socials[socialKey];
+                const newValue = req.body.socials[socialKey];
+                if (newValue && newValue.length) socials[socialKey] = newValue;
               }
               updates.socials = JSON.stringify(socials);
               continue;
@@ -78,20 +77,6 @@ module.exports = ({ io }) => {
           return { error: "No updates provided", status: 400 };
         }
 
-        // Get the user profile
-        const [
-          users
-        ] = await mysql.exec(
-          "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
-          [req.user.userAccount.profileId]
-        );
-        if (!users.length) {
-          return {
-            error: `No user_profile found by account profileId ${req.user.userAccount.profileId}`,
-            status: 500
-          };
-        }
-
         // Create sql update string
         const update = keys.join(" = ?, ") + " = ?";
         const values = keys.map(k => updates[k]);
@@ -102,8 +87,32 @@ module.exports = ({ io }) => {
           `UPDATE user_profiles SET ${update} WHERE id = ?`,
           [...values, req.user.userAccount.profileId]
         );
+        // If did not update
+        if (result.affectedRows < 1) {
+          return {
+            error: "An error occurred while updated your profile",
+            status: 500
+          };
+        }
 
-        return { ok: true };
+        // Get the user profile
+        const [
+          users
+        ] = await mysql.getUserProfiles(
+          "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
+          [req.user.userAccount.profileId]
+        );
+        if (!users.length) {
+          return {
+            error: `No user_profile found by account profileId ${req.user.userAccount.profileId}`,
+            status: 500
+          };
+        }
+
+        return {
+          ok: true,
+          data: users[0]
+        };
       }
     })
   };

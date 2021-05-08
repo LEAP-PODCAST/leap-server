@@ -65,7 +65,7 @@ global.consumers = new Map();
     const res = await global.mysql.exec(query, params);
     for (let i = 0; i < res[0].length; i++) {
       const p = res[0][i];
-      !p.socials ? (p.socials = {}) : JSON.parse(p.socials);
+      p.socials = !p.socials ? {} : JSON.parse(p.socials);
 
       if (p.podcasts.length) {
         const [podcasts] = await mysql.exec(
