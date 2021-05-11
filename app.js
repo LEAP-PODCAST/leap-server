@@ -250,9 +250,8 @@ async function main() {
 
   // Attack Socket.IO to express server
   io = require("socket.io")(server);
-  global.NotificationService = new (require("./classes/NotificationService"))({
-    io
-  });
+  const ns = require("./classes/NotificationService");
+  global.NotificationService = new ns({ io });
 
   createSocketApp();
 
