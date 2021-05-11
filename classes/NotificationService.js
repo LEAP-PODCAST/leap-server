@@ -36,9 +36,7 @@ module.exports = class {
     }
 
     // Get user account
-    const [
-      users
-    ] = await mysql.exec(
+    const [users] = await mysql.exec(
       "SELECT * FROM user_accounts WHERE profile_id = ? LIMIT 1",
       [toUser.id]
     );
@@ -72,7 +70,7 @@ module.exports = class {
     }
 
     // Send them a notification
-    this.sendNotification(toUser.id, "podcast_invite", {
+    this.sendNotification(toUser.id, "podcastInvite", {
       id: result.insertId,
       fromName: `${fromUser.firstName} ${fromUser.lastName}`,
       podcastName: podcast.name,
@@ -96,9 +94,7 @@ module.exports = class {
     }
 
     // Get user account
-    const [
-      users
-    ] = await mysql.exec(
+    const [users] = await mysql.exec(
       "SELECT * FROM user_accounts WHERE profile_id = ? LIMIT 1",
       [toUser.id]
     );
@@ -132,7 +128,7 @@ module.exports = class {
     }
 
     // Send them a notification
-    this.sendNotification(toUser.id, "episode_invite", {
+    this.sendNotification(toUser.id, "episodeInvite", {
       id: result.insertId,
       fromName: `${fromUser.firstName} ${fromUser.lastName}`,
       podcastName: podcast.name,
