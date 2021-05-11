@@ -1,11 +1,9 @@
 const AWS = require("aws-sdk");
 
-let io;
-
 module.exports = class {
   io = null;
 
-  constructor(io) {
+  constructor({ io }) {
     this.io = io;
   }
 
