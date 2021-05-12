@@ -5,11 +5,8 @@ const { sanitizeNameForURL } = require("../../methods");
 const { default: consolaGlobalInstance } = require("consola");
 
 module.exports = ({ io }) => {
-  const {
-    verifyUserToken,
-    verifyPodcastExists,
-    verifyUserIsHostOfPodcast
-  } = require("../middleware")({ io });
+  const { verifyUserToken, verifyPodcastExists, verifyUserIsHostOfPodcast } =
+    require("../middleware")({ io });
 
   return {
     /**
@@ -30,6 +27,11 @@ module.exports = ({ io }) => {
           hosts: {
             type: "array",
             required: true
+          },
+          description: {
+            type: "string",
+            required: true,
+            maxLength: 128
           }
         }
       },
@@ -43,9 +45,7 @@ module.exports = ({ io }) => {
         const hostProfiles = [];
 
         // Add creator to array
-        const [
-          userProfiles
-        ] = await mysql.getUserProfiles(
+        const [userProfiles] = await mysql.getUserProfiles(
           "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
           [req.user.userAccount.profileId]
         );
@@ -63,9 +63,7 @@ module.exports = ({ io }) => {
 
         // Verify hosts are legit hosts
         for (const host of hosts.filter(hosts => hosts.type === "user")) {
-          const [
-            selectedHosts
-          ] = await mysql.getUserProfiles(
+          const [selectedHosts] = await mysql.getUserProfiles(
             "SELECT * FROM user_profiles WHERE username = ? LIMIT 1",
             [host.username]
           );
@@ -81,11 +79,10 @@ module.exports = ({ io }) => {
         }
 
         // Check if podcast with name already exists
-        const [
-          podcasts
-        ] = await mysql.exec("SELECT * FROM podcasts WHERE name = ? LIMIT 1", [
-          name
-        ]);
+        const [podcasts] = await mysql.exec(
+          "SELECT * FROM podcasts WHERE name = ? LIMIT 1",
+          [name]
+        );
         if (podcasts.length) {
           return {
             error: `A podcast with the name ${name} already exists`,
@@ -112,9 +109,7 @@ module.exports = ({ io }) => {
           const podcastIds = hostProfile.podcasts.map(p => p.id);
           podcastIds.push(result.insertId);
 
-          const [
-            result2
-          ] = await mysql.exec(
+          const [result2] = await mysql.exec(
             `UPDATE user_profiles SET podcasts = ? WHERE id = ?`,
             [podcastIds.toString(), hostProfile.id]
           );
@@ -153,9 +148,8 @@ module.exports = ({ io }) => {
         }
 
         // Create table for episodes
-        const [
-          result2
-        ] = await mysql.exec(`CREATE TABLE IF NOT EXISTS podcast_${result.insertId}_episodes (
+        const [result2] =
+          await mysql.exec(`CREATE TABLE IF NOT EXISTS podcast_${result.insertId}_episodes (
           id INTEGER PRIMARY KEY AUTO_INCREMENT,
           podcastId INTEGER NOT NULL,
           name VARCHAR(64) NOT NULL,
@@ -207,13 +201,149 @@ module.exports = ({ io }) => {
       async function(req, res) {
         const startingId = req.query.startingId || 1;
 
-        const [
-          podcasts
-        ] = await mysql.exec("SELECT * FROM podcasts WHERE id >= ? LIMIT 100", [
-          startingId
-        ]);
+        const [podcasts] = await mysql.exec(
+          "SELECT * FROM podcasts WHERE id >= ? LIMIT 100",
+          [startingId]
+        );
 
         return { ok: true, data: podcasts };
+      }
+    }),
+
+    /**
+     * Update a podcasts info
+     */
+    update: new ExpressRoute({
+      type: "PUT",
+
+      model: {
+        body: {
+          hosts: {
+            type: "array"
+          },
+          name: {
+            type: "string"
+          },
+          description: {
+            type: "string"
+          }
+        }
+      },
+
+      middleware: [verifyUserToken],
+
+      async function(req, res) {
+        // Get from the request body, only the data from the model
+        const keysToLookFor = Object.keys(this.model.body);
+
+        const updates = {};
+
+        const hostIds = [];
+        const hostProfiles = [];
+
+        // Get only the keys you can update to filter out any junk
+        for (const key of Object.keys(req.body)) {
+          // If we are cool with accepting this updated value
+          if (keysToLookFor.includes(key)) {
+            // Custom handler for social
+            if (key === "hosts") {
+              // Add creator to array
+              const [userProfiles] = await mysql.getUserProfiles(
+                "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
+                [req.user.userAccount.profileId]
+              );
+              if (!userProfiles.length) {
+                return {
+                  error: "Could not find your user profile in the database",
+                  status: 500
+                };
+              }
+
+              hosts.unshift({
+                type: "user",
+                ...userProfiles[0]
+              });
+
+              // Verify hosts are legit hosts
+              for (const host of hosts.filter(hosts => hosts.type === "user")) {
+                const [selectedHosts] = await mysql.getUserProfiles(
+                  "SELECT * FROM user_profiles WHERE username = ? LIMIT 1",
+                  [host.username]
+                );
+                if (!selectedHosts.length) {
+                  return {
+                    error: `One of the hosts, ${host.fullUsername}, was not found in the database`,
+                    status: 400
+                  };
+                }
+
+                hostProfiles.push(selectedHosts[0]);
+                hostIds.push(selectedHosts[0].id);
+              }
+
+              updates[key] = hostIds.toString();
+              continue;
+            }
+            updates[key] = req.body[key];
+          }
+        }
+
+        const keys = Object.keys(updates);
+        if (!keys.length) {
+          return { error: "No updates provided", status: 400 };
+        }
+
+        // Add podcast to hosts podcasts array
+        for (const hostProfile of hostProfiles) {
+          const podcastIds = hostProfile.podcasts.map(p => p.id);
+          podcastIds.push(result.insertId);
+
+          const [result2] = await mysql.exec(
+            `UPDATE user_profiles SET podcasts = ? WHERE id = ?`,
+            [podcastIds.toString(), hostProfile.id]
+          );
+          if (!result2) {
+            return {
+              error: "An error occurred adding this podcast to host user",
+              status: 500
+            };
+          }
+        }
+
+        // Remove podcast from hosts podcasts array if they were removed
+
+        // Create sql update string
+        const update = keys.join(" = ?, ") + " = ?";
+        const values = keys.map(k => updates[k]);
+
+        const [result] = await mysql.exec(
+          `UPDATE user_profiles SET ${update} WHERE id = ?`,
+          [...values, req.user.userAccount.profileId]
+        );
+        // If did not update
+        if (result.affectedRows < 1) {
+          return {
+            error: "An error occurred while updated your profile",
+            status: 500
+          };
+        }
+
+        // Get the user profile
+        const [users] = await mysql.getUserProfiles(
+          "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
+          [req.user.userAccount.profileId]
+        );
+        if (!users.length) {
+          return {
+            error: `No user_profile found by account profileId ${req.user.userAccount.profileId}`,
+            status: 500
+          };
+        }
+
+        return {
+          ok: true,
+          data: users[0]
+        };
       }
     }),
 
@@ -315,9 +445,7 @@ module.exports = ({ io }) => {
 
         // Check if guests exist in database
         for (const user of guests.filter(guest => guest.type === "user")) {
-          const [
-            userProfiles
-          ] = await mysql.exec(
+          const [userProfiles] = await mysql.exec(
             "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
             [user.id]
           );
@@ -351,11 +479,10 @@ module.exports = ({ io }) => {
         }
 
         // Get hosts from podcast in db
-        const [
-          podcasts
-        ] = await mysql.exec("SELECT * FROM podcasts WHERE id = ? LIMIT 1", [
-          podcastId
-        ]);
+        const [podcasts] = await mysql.exec(
+          "SELECT * FROM podcasts WHERE id = ? LIMIT 1",
+          [podcastId]
+        );
         if (!podcasts.length) {
           return {
             error: `No podcast found by podcast id ${podcastId}`,
@@ -401,9 +528,7 @@ module.exports = ({ io }) => {
         }
 
         // Select the newly created podcast
-        const [
-          episodes
-        ] = await mysql.exec(
+        const [episodes] = await mysql.exec(
           "SELECT * FROM scheduled_podcast WHERE id = ? LIMIT 1",
           [result.insertId]
         );
@@ -435,9 +560,7 @@ module.exports = ({ io }) => {
       async function(req, res) {
         const id = req.user.userAccount.profileId;
 
-        const [
-          userProfiles
-        ] = await mysql.exec(
+        const [userProfiles] = await mysql.exec(
           "SELECT podcasts FROM user_profiles WHERE id = ? LIMIT 1",
           [id]
         );
