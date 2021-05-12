@@ -46,7 +46,11 @@ module.exports = async ({ app, io }) => {
           // Do validation on model
           const modelKeys = Object.keys(model);
           for (const modelKey of modelKeys) {
-            const valResult = validateParams(model[modelKey], req[modelKey]);
+            const valResult = validateParams(
+              model[modelKey],
+              req[modelKey],
+              modelKey
+            );
 
             if (!valResult.ok) {
               res.error({}, valResult.error, 400);

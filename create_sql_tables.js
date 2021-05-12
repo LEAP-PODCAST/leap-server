@@ -9,7 +9,8 @@ module.exports = async () => {
     bio VARCHAR(128),
     socials TEXT,
     podcasts TEXT,
-    createdAt TIMESTAMP NOT NULL DEFAULT NOW()
+    createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
+    dob DATE
   )`);
 
   await mysql.exec(`CREATE TABLE IF NOT EXISTS user_accounts (
@@ -30,6 +31,7 @@ module.exports = async () => {
   await mysql.exec(`CREATE TABLE IF NOT EXISTS podcasts (
     id INTEGER PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(64) UNIQUE NOT NULL,
+    description VARCHAR(128) NOT NULL,
     urlName VARCHAR(64) UNIQUE NOT NULL,
     iconUrl TEXT,
     hosts TEXT

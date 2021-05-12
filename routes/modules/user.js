@@ -67,6 +67,15 @@ module.exports = ({ io }) => {
           receiveNotifications: {
             type: "boolean",
             required: true
+          },
+          dob: {
+            type: "string",
+            required: true,
+            validator: dob => ({
+              isValid:
+                /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(dob) && dob.length === 10,
+              error: "That is not a valid date format"
+            })
           }
         },
         headers: {
@@ -87,7 +96,8 @@ module.exports = ({ io }) => {
           lastName,
           email,
           password,
-          receiveNotifications
+          receiveNotifications,
+          dob
         } = req.body;
 
         const lowerUsername = username.toLowerCase();
@@ -115,18 +125,38 @@ module.exports = ({ io }) => {
           return { error: "That email is not available", status: 400 };
         }
 
-        // // Create a user profile
+        // Verify date is real date
+        const [year, month, day] = dob.split("-");
+        // Check if year is less than 1900 or greater than current year
+        if (year < 1900 || year > new Date().getFullYear()) {
+          return { error: `Birth year is out of range`, status: 400 };
+        }
+        // Check if is not a real month
+        if (month < 1 || month > 12) {
+          return { error: "Birth month is out of range", status: 400 };
+        }
+        // Check if is not a real day
+        if (day < 1 || day > 31) {
+          return { error: "Birth day is out of range", status: 400 };
+        }
+
+        // Create a user profile
         var [result] = await mysql.exec(
           `INSERT INTO user_profiles (
           username,
           fullUsername,
+          avatarUrl,
           firstName,
           lastName,
-          podcasts
-        ) VALUES (?, ?, ?, ?, ?)`,
-          [lowerUsername, username, firstName, lastName, ""]
+          podcasts,
+          socials,
+          bio,
+          dob
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [lowerUsername, username, "", firstName, lastName, "", {}, "", dob]
         );
         if (!result || typeof result.insertId !== "number") {
+          console.log(result);
           return {
             error: "An error occurred creating this user profile",
             status: 500
@@ -183,9 +213,10 @@ module.exports = ({ io }) => {
         const [result2] = await mysql.exec(
           `INSERT INTO user_account_email_validations (
           profileId,
+          email,
           id
-        ) VALUES (?, ?)`,
-          [userProfile.id, emailId]
+        ) VALUES (?, ?, ?)`,
+          [userProfile.id, lowerEmail, emailId]
         );
 
         SES.sendEmail({
