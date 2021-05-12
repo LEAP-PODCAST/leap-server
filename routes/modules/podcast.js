@@ -39,7 +39,7 @@ module.exports = ({ io }) => {
       middleware: [verifyUserToken],
 
       async function(req, res) {
-        const { name, hosts } = req.body;
+        const { name, hosts, description } = req.body;
 
         const hostIds = [];
         const hostProfiles = [];
@@ -93,9 +93,12 @@ module.exports = ({ io }) => {
         // Create the podcast
         const [result] = await mysql.exec(
           `INSERT INTO podcasts (
-          name, urlName, hosts
-        ) VALUES (?, ?, ?)`,
-          [name, sanitizeNameForURL(name), hostIds.toString()]
+          name,
+          urlName,
+          hosts,
+          description
+        ) VALUES (?, ?, ?, ?)`,
+          [name, sanitizeNameForURL(name), hostIds.toString(), description]
         );
         if (!result || typeof result.insertId !== "number") {
           return {
@@ -201,7 +204,7 @@ module.exports = ({ io }) => {
       async function(req, res) {
         const startingId = req.query.startingId || 1;
 
-        const [podcasts] = await mysql.exec(
+        const [podcasts] = await mysql.getPodcasts(
           "SELECT * FROM podcasts WHERE id >= ? LIMIT 100",
           [startingId]
         );
@@ -222,17 +225,25 @@ module.exports = ({ io }) => {
             type: "array"
           },
           name: {
-            type: "string"
+            type: "string",
+            maxLength: 64
           },
           description: {
-            type: "string"
+            type: "string",
+            maxLength: 128
           }
         }
       },
 
-      middleware: [verifyUserToken],
+      middleware: [
+        verifyUserToken,
+        verifyPodcastExists,
+        verifyUserIsHostOfPodcast
+      ],
 
       async function(req, res) {
+        const { podcast } = req;
+
         // Get from the request body, only the data from the model
         const keysToLookFor = Object.keys(this.model.body);
 
@@ -247,6 +258,8 @@ module.exports = ({ io }) => {
           if (keysToLookFor.includes(key)) {
             // Custom handler for social
             if (key === "hosts") {
+              const { hosts } = req.body;
+
               // Add creator to array
               const [userProfiles] = await mysql.getUserProfiles(
                 "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
@@ -296,7 +309,12 @@ module.exports = ({ io }) => {
         // Add podcast to hosts podcasts array
         for (const hostProfile of hostProfiles) {
           const podcastIds = hostProfile.podcasts.map(p => p.id);
-          podcastIds.push(result.insertId);
+
+          // Verify they don't already have that podcastId on their profile
+          if (podcastIds.includes(req.podcast.id)) {
+            continue;
+          }
+          podcastIds.push(req.podcast.id);
 
           const [result2] = await mysql.exec(
             `UPDATE user_profiles SET podcasts = ? WHERE id = ?`,
@@ -310,15 +328,47 @@ module.exports = ({ io }) => {
           }
         }
 
+        // Get array of users who were in old but not new
+        const removedIds = podcast.hosts
+          .split(",")
+          .map(v => parseInt(v))
+          .filter(v => !hostIds.includes(v));
+
         // Remove podcast from hosts podcasts array if they were removed
+        for (const id of removedIds) {
+          // Get user object
+          const [users] = await mysql.exec(
+            "SELECT podcasts FROM user_profiles WHERE id = ? LIMIT 1",
+            [id]
+          );
+          if (!users.length) {
+            return { error: `No user profile found by id ${id}`, status: 500 };
+          }
+
+          const podcastIds = users[0].podcasts
+            .split(",")
+            .filter(v => v != podcast.id);
+
+          const [result2] = await mysql.exec(
+            `UPDATE user_profiles SET podcasts = ? WHERE id = ?`,
+            [podcastIds.toString(), id]
+          );
+          if (!result2) {
+            return {
+              error:
+                "An error occurred while removing this podcast from user profile",
+              status: 500
+            };
+          }
+        }
 
         // Create sql update string
         const update = keys.join(" = ?, ") + " = ?";
         const values = keys.map(k => updates[k]);
 
         const [result] = await mysql.exec(
-          `UPDATE user_profiles SET ${update} WHERE id = ?`,
-          [...values, req.user.userAccount.profileId]
+          `UPDATE podcasts SET ${update} WHERE id = ?`,
+          [...values, podcast.id]
         );
         // If did not update
         if (result.affectedRows < 1) {
@@ -328,21 +378,21 @@ module.exports = ({ io }) => {
           };
         }
 
-        // Get the user profile
-        const [users] = await mysql.getUserProfiles(
-          "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
-          [req.user.userAccount.profileId]
+        // Get the podcast
+        const [podcasts] = await mysql.getPodcasts(
+          "SELECT * FROM podcasts WHERE id = ? LIMIT 1",
+          [podcast.id]
         );
-        if (!users.length) {
+        if (!podcasts.length) {
           return {
-            error: `No user_profile found by account profileId ${req.user.userAccount.profileId}`,
+            error: `No podcast found by id ${podcast.id}`,
             status: 500
           };
         }
 
         return {
           ok: true,
-          data: users[0]
+          data: podcasts[0]
         };
       }
     }),
