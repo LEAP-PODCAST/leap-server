@@ -68,7 +68,7 @@ global.consumers = new Map();
       p.socials = !p.socials ? {} : JSON.parse(p.socials);
 
       if (p.podcasts.length) {
-        const [podcasts] = await mysql.exec(
+        const [podcasts] = await mysql.getPodcasts(
           `SELECT * FROM podcasts WHERE id IN (${p.podcasts})`
         );
         p.podcasts = podcasts;
@@ -83,7 +83,7 @@ global.consumers = new Map();
       const p = res[0][i];
 
       if (p.hosts.length) {
-        const [hosts] = await mysql.getUserProfiles(
+        const [hosts] = await mysql.exec(
           `SELECT * FROM user_profiles WHERE id IN (${p.hosts})`
         );
         p.hosts = hosts;
