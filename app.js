@@ -68,7 +68,7 @@ global.consumers = new Map();
       p.socials = !p.socials ? {} : JSON.parse(p.socials);
 
       if (p.podcasts.length) {
-        const [podcasts] = await mysql.exec(
+        const [podcasts] = await mysql.getPodcasts(
           `SELECT * FROM podcasts WHERE id IN (${p.podcasts})`
         );
         p.podcasts = podcasts;
@@ -156,9 +156,7 @@ global.consumers = new Map();
 
           const emails = [];
           for (const user of users) {
-            const [
-              e
-            ] = await mysql.exec(
+            const [e] = await mysql.exec(
               "SELECT email FROM user_accounts WHERE profileId = ?",
               [user]
             );
@@ -166,11 +164,10 @@ global.consumers = new Map();
           }
 
           // Get the corresponding podcast
-          const [
-            podcasts
-          ] = await mysql.exec("SELECT * FROM podcasts WHERE id = ? LIMIT 1", [
-            episode.podcastId
-          ]);
+          const [podcasts] = await mysql.exec(
+            "SELECT * FROM podcasts WHERE id = ? LIMIT 1",
+            [episode.podcastId]
+          );
           if (!podcasts.length) {
             console.error(
               `Could not find a podcast corresponding to podcastId ${episode.podcastId}`
@@ -198,11 +195,10 @@ global.consumers = new Map();
         // If episode is still scheduled but over 24 hours late, remove it from the DB
         const _24hours = 1000 * 60 * 60 * 24;
         if (episode.startTime <= Date.now() + _24hours) {
-          const [
-            result
-          ] = await mysql.exec("DELETE FROM scheduled_podcast WHERE id = ?", [
-            episode.id
-          ]);
+          const [result] = await mysql.exec(
+            "DELETE FROM scheduled_podcast WHERE id = ?",
+            [episode.id]
+          );
 
           if (!result) {
             consola.error(
