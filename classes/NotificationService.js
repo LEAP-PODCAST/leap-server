@@ -62,6 +62,15 @@ module.exports = class {
       };
     }
 
+    const [result2] = await mysql.exec(
+      `INSERT INTO notifications (
+      tableName,
+      itemId,
+      toUserEmail
+    ) VALUES (?, ?, ?)`,
+      ["invites", result.insertId, toEmail]
+    );
+
     // Check if user accepts emails
     if (users[0].receiveEmails) {
       // Send the user an email that they were invited as a role
@@ -120,6 +129,15 @@ module.exports = class {
       };
     }
 
+    const [result2] = await mysql.exec(
+      `INSERT INTO notifications (
+      tableName,
+      itemId,
+      toUserEmail
+    ) VALUES (?, ?, ?)`,
+      ["invites", result.insertId, toEmail]
+    );
+
     // Check if user accepts emails
     if (users[0].receiveEmails) {
       // Send the user an email that they were invited as a role
@@ -135,14 +153,19 @@ module.exports = class {
     });
   }
 
+  /**
+   * Send a text notification to a user
+   * @param {object} user User account object
+   * @param {string} text Notification string
+   * @returns
+   */
   async sendTextNotification(user, text) {
     const [result] = await mysql.exec(
-      `INSERT INTO notifications (
-      toUserId,
+      `INSERT INTO general_notifications (
       text,
       unread
     ) VALUES (?, ?, ?)`,
-      [user.id, text, true]
+      [text, true]
     );
     if (!result || !result.insertId) {
       return {
@@ -150,6 +173,15 @@ module.exports = class {
         status: 500
       };
     }
+
+    const [result2] = await mysql.exec(
+      `INSERT INTO notifications (
+        tableName,
+        itemId,
+        toUserEmail
+      ) VALUES (?, ?, ?)`,
+      ["general_notifications", result.insertId, user.email]
+    );
 
     this.sendNotification(user.id, "text", { text });
   }

@@ -59,7 +59,14 @@ module.exports = async () => {
 
   await mysql.exec(`CREATE TABLE IF NOT EXISTS notifications (
     id INTEGER PRIMARY KEY AUTO_INCREMENT,
-    toUserId INTEGER NOT NULL,
+    tableName VARCHAR(16) NOT NULL,
+    itemId INTEGER UNIQUE NOT NULL,
+    toUserEmail VARCHAR(32) NOT NULL,
+    createdAt TIMESTAMP NOT NULL DEFAULT NOW()
+  )`);
+
+  await mysql.exec(`CREATE TABLE IF NOT EXISTS general_notifications (
+    id INTEGER PRIMARY KEY AUTO_INCREMENT,
     text TEXT NOT NULL,
     unread BOOL NOT NULL,
     createdAt TIMESTAMP NOT NULL DEFAULT NOW()
@@ -68,7 +75,6 @@ module.exports = async () => {
   await mysql.exec(`CREATE TABLE IF NOT EXISTS invites (
     id INTEGER PRIMARY KEY AUTO_INCREMENT,
     fromUserId INTEGER NOT NULL,
-    toEmail VARCHAR(32) NOT NULL,
     role VARCHAR(8) NOT NULL,
     podcastId INTEGER,
     episodeId INTEGER,

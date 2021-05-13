@@ -1,7 +1,7 @@
 const ExpressRoute = require("../ExpressRoute.js");
 
 module.exports = ({ io }) => {
-  const { verifySocketId, verifyRoomId } = require("../middleware")({ io });
+  const { verifyUserToken } = require("../middleware")({ io });
 
   return {
     /**
@@ -13,18 +13,36 @@ module.exports = ({ io }) => {
 
       model: {
         query: {
-          endTime: {
+          lastId: {
             type: "number"
           }
         }
       },
 
-      middleware: [verifySocketId, verifyRoomId],
+      middleware: [verifyUserToken],
 
-      function(req, res) {
-        const endTime = 
+      async function(req, res) {
+        const lastId = req.query.lastId || 0;
 
-        const [notifications] = await mysql.exec(`SELECT * FROM notifications`)
+        const [notifications] = await mysql.exec(
+          `SELECT * FROM notifications WHERE id > ? AND toUserEmail = ? LIMIT 10`,
+          [lastId, req.user.userAccount.email]
+        );
+
+        const items = [];
+        for (const notification of notifications) {
+          const { tableName, itemId } = notification;
+          const [i] = await mysql.exec("SELECT * FROM ? WHERE id = ?", [
+            tableName,
+            itemId
+          ]);
+          items.push(i[0]);
+        }
+
+        return {
+          ok: true,
+          data: items
+        };
       }
     })
   };
