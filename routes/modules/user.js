@@ -16,7 +16,7 @@ module.exports = ({ io }) => {
      * @param {string} lastName
      * @param {string} email,
      * @param {string} password
-     * @param {boolean} receiveNotifications
+     * @param {boolean} receiveEmails
      */
     signUp: new ExpressRoute({
       type: "POST",
@@ -64,7 +64,7 @@ module.exports = ({ io }) => {
             required: true,
             maxLength: 64
           },
-          receiveNotifications: {
+          receiveEmails: {
             type: "boolean",
             required: true
           },
@@ -96,7 +96,7 @@ module.exports = ({ io }) => {
           lastName,
           email,
           password,
-          receiveNotifications,
+          receiveEmails,
           dob
         } = req.body;
 
@@ -104,9 +104,7 @@ module.exports = ({ io }) => {
         const lowerEmail = email.toLowerCase();
 
         // Verify that the username is not taken
-        var [
-          users
-        ] = await mysql.getUserProfiles(
+        var [users] = await mysql.getUserProfiles(
           "SELECT id FROM user_profiles WHERE username = ? LIMIT 1",
           [lowerUsername]
         );
@@ -115,9 +113,7 @@ module.exports = ({ io }) => {
         }
 
         // Verify that the email is not taken
-        var [
-          users
-        ] = await mysql.exec(
+        var [users] = await mysql.exec(
           "SELECT profileId FROM user_accounts WHERE email = ? LIMIT 1",
           [lowerEmail]
         );
@@ -163,9 +159,7 @@ module.exports = ({ io }) => {
           };
         }
 
-        const [
-          userProfiles
-        ] = await mysql.getUserProfiles(
+        const [userProfiles] = await mysql.getUserProfiles(
           "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
           [result.insertId]
         );
@@ -193,10 +187,10 @@ module.exports = ({ io }) => {
           email,
           password,
           salt,
-          receiveNotifications,
+          receiveEmails,
           isEmailVerified
         ) VALUES (?, ?, ?, ?, ?, ?)`,
-          [userProfile.id, lowerEmail, hash, salt, receiveNotifications, false]
+          [userProfile.id, lowerEmail, hash, salt, receiveEmails, false]
         );
 
         if (!result || typeof result.insertId !== "number") {
@@ -232,9 +226,7 @@ module.exports = ({ io }) => {
           from: "support@joinleap.co"
         });
 
-        const [
-          userAccounts
-        ] = await mysql.exec(
+        const [userAccounts] = await mysql.exec(
           "SELECT * FROM user_accounts WHERE profileId = ? LIMIT 1",
           [userProfile.id]
         );
@@ -252,7 +244,7 @@ module.exports = ({ io }) => {
           userProfile,
           userAccount: {
             email: userAccount.email,
-            receiveNotifications: userAccount.receiveNotifications,
+            receiveEmails: userAccount.receiveEmails,
             salt: userAccount.salt
           },
           token: jwt.sign({ userAccount }, req.headers["device-id"], {
@@ -310,9 +302,7 @@ module.exports = ({ io }) => {
         const lowerEmail = email.toLowerCase();
 
         // Check if a user account exists with this email
-        const [
-          userAccounts
-        ] = await mysql.exec(
+        const [userAccounts] = await mysql.exec(
           "SELECT * FROM user_accounts WHERE email = ? LIMIT 1",
           [lowerEmail]
         );
@@ -333,9 +323,7 @@ module.exports = ({ io }) => {
         }
 
         // Get user profile by profileId
-        const [
-          userProfiles
-        ] = await mysql.getUserProfiles(
+        const [userProfiles] = await mysql.getUserProfiles(
           "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
           [userAccount.profileId]
         );
@@ -353,7 +341,7 @@ module.exports = ({ io }) => {
           userProfile,
           userAccount: {
             email: userAccount.email,
-            receiveNotifications: userAccount.receiveNotifications,
+            receiveEmails: userAccount.receiveEmails,
             salt: userAccount.salt
           },
           token: jwt.sign({ userAccount }, req.headers["device-id"], {
@@ -386,9 +374,7 @@ module.exports = ({ io }) => {
       async function(req, res) {
         const id = req.user.userAccount.profileId;
 
-        const [
-          userProfiles
-        ] = await mysql.getUserProfiles(
+        const [userProfiles] = await mysql.getUserProfiles(
           "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
           [id]
         );
@@ -397,7 +383,7 @@ module.exports = ({ io }) => {
         }
 
         // Add user to io users store
-        io.users.set(id, socket.id);
+        io.users.set(id, req.socket.id);
 
         return {
           ok: true,
@@ -405,7 +391,7 @@ module.exports = ({ io }) => {
             userProfile: userProfiles[0],
             userAccount: {
               email: req.user.userAccount.email,
-              receiveNotifications: req.user.userAccount.receiveNotifications,
+              receiveEmails: req.user.userAccount.receiveEmails,
               salt: req.user.userAccount.salt
             },
             token: req.headers.authorization
