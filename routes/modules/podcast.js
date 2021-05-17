@@ -107,21 +107,36 @@ module.exports = ({ io }) => {
           };
         }
 
-        // Add podcast to hosts podcasts array
-        for (const hostProfile of hostProfiles) {
-          const podcastIds = hostProfile.podcasts.map(p => p.id);
-          podcastIds.push(result.insertId);
+        // Add podcast to creators profile
+        const [result2] = await mysql.exec(
+          `UPDATE user_profiles SET podcasts = ? WHERE id = ?`,
+          [
+            [result.insertId, ...hostProfiles[0].podcasts].toString(),
+            hostProfiles[0].id
+          ]
+        );
+        if (!result2) {
+          return {
+            error: "An error occurred adding this podcast to host user",
+            status: 500
+          };
+        }
 
-          const [result2] = await mysql.exec(
-            `UPDATE user_profiles SET podcasts = ? WHERE id = ?`,
-            [podcastIds.toString(), hostProfile.id]
-          );
-          if (!result2) {
-            return {
-              error: "An error occurred adding this podcast to host user",
-              status: 500
-            };
-          }
+        // Invite other users to host podcast
+        for (let i = 1; i < hostProfiles.length; i++) {
+          const hostProfile = hostProfiles[i];
+
+          NotificationService.inviteUserAsRoleOnPodcast({
+            fromUser: userProfiles[0],
+            toUser: hostProfile,
+            role: "host",
+            podcast: {
+              id: result.insertId,
+              name,
+              hostIds,
+              description
+            }
+          });
         }
 
         // Email users who are not on leap to join with a temporary account
@@ -179,7 +194,8 @@ module.exports = ({ io }) => {
           data: {
             id: result.insertId,
             name,
-            hostIds
+            hostIds,
+            description
           }
         };
       }
