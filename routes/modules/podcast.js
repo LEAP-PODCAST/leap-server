@@ -156,7 +156,7 @@ module.exports = ({ io }) => {
             from: "support@joinleap.co"
           });
 
-          const [result2] = await mysql.exec(
+          await mysql.exec(
             `INSERT INTO email_invites (
             email,
             podcastId
@@ -166,7 +166,7 @@ module.exports = ({ io }) => {
         }
 
         // Create table for episodes
-        const [result2] =
+        const [result3] =
           await mysql.exec(`CREATE TABLE IF NOT EXISTS podcast_${result.insertId}_episodes (
           id INTEGER PRIMARY KEY AUTO_INCREMENT,
           podcastId INTEGER NOT NULL,
@@ -180,7 +180,7 @@ module.exports = ({ io }) => {
           isLive BOOL NOT NULL
         )`);
 
-        if (!result2) {
+        if (!result3 || !result3.insertId) {
           consola.error(
             "There was an error creating the podcast_episodes table"
           );
