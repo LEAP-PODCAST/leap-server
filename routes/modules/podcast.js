@@ -111,7 +111,10 @@ module.exports = ({ io }) => {
         const [result2] = await mysql.exec(
           `UPDATE user_profiles SET podcasts = ? WHERE id = ?`,
           [
-            [result.insertId, ...hostProfiles[0].podcasts].toString(),
+            [
+              result.insertId,
+              ...hostProfiles[0].podcasts.map(({ id }) => id)
+            ].toString(),
             hostProfiles[0].id
           ]
         );
@@ -126,9 +129,16 @@ module.exports = ({ io }) => {
         for (let i = 1; i < hostProfiles.length; i++) {
           const hostProfile = hostProfiles[i];
 
+          // Get host account email
+          const [userAccounts] = await mysql.exec(
+            "SELECT email FROM user_accounts WHERE profileId = ? LIMIT 1",
+            [hostProfile.id]
+          );
+
           NotificationService.inviteUserAsRoleOnPodcast({
             fromUser: userProfiles[0],
             toUser: hostProfile,
+            toEmail: userAccounts[0].email,
             role: "host",
             podcast: {
               id: result.insertId,
@@ -180,7 +190,7 @@ module.exports = ({ io }) => {
           isLive BOOL NOT NULL
         )`);
 
-        if (!result3 || !result3.insertId) {
+        if (!result3) {
           consola.error(
             "There was an error creating the podcast_episodes table"
           );
@@ -194,7 +204,7 @@ module.exports = ({ io }) => {
           data: {
             id: result.insertId,
             name,
-            hostIds,
+            hosts: hostProfiles,
             description
           }
         };

@@ -35,25 +35,26 @@ module.exports = class {
 
     // Get user account
     const [users] = await mysql.exec(
-      "SELECT * FROM user_accounts WHERE profile_id = ? LIMIT 1",
+      "SELECT * FROM user_accounts WHERE profileId = ? LIMIT 1",
       [toUser.id]
     );
     if (!users.length) {
       return {
-        error: `No user account found by profile_id ${toUser.id}`,
+        error: `No user account found by profileId ${toUser.id}`,
         status: 500
       };
     }
+
+    console.log(fromUser.id, toEmail, role, podcast.id);
 
     // Add notification to database
     const [result] = await mysql.exec(
       `INSERT INTO invites (
       fromUserId,
-      toEmail,
       role,
       podcastId
-    ) VALUES (?, ?, ?, ?, ?)`,
-      [fromUser.id, toEmail, role, podcast.id]
+    ) VALUES (?, ?, ?)`,
+      [fromUser.id, role, podcast.id]
     );
     if (!result || !result.insertId) {
       return {
@@ -66,7 +67,7 @@ module.exports = class {
       `INSERT INTO notifications (
       tableName,
       itemId,
-      toUserEmail
+      toEmail
     ) VALUES (?, ?, ?)`,
       ["invites", result.insertId, toEmail]
     );
@@ -102,12 +103,12 @@ module.exports = class {
 
     // Get user account
     const [users] = await mysql.exec(
-      "SELECT * FROM user_accounts WHERE profile_id = ? LIMIT 1",
+      "SELECT * FROM user_accounts WHERE profileId = ? LIMIT 1",
       [toUser.id]
     );
     if (!users.length) {
       return {
-        error: `No user account found by profile_id ${toUser.id}`,
+        error: `No user account found by profileId ${toUser.id}`,
         status: 500
       };
     }
@@ -116,11 +117,10 @@ module.exports = class {
     const [result] = await mysql.exec(
       `INSERT INTO invites (
       fromUserId,
-      toEmail,
       role,
       episodeId
-    ) VALUES (?, ?, ?, ?, ?)`,
-      [fromUser.id, toEmail, role, episode.id]
+    ) VALUES (?, ?, ?)`,
+      [fromUser.id, role, episode.id]
     );
     if (!result || !result.insertId) {
       return {
@@ -133,7 +133,7 @@ module.exports = class {
       `INSERT INTO notifications (
       tableName,
       itemId,
-      toUserEmail
+      toEmail
     ) VALUES (?, ?, ?)`,
       ["invites", result.insertId, toEmail]
     );

@@ -213,7 +213,7 @@ module.exports = async ({ io }) => {
       // Remove self from global users
       for (const key of Array.from(io.users.keys())) {
         if (io.users.get(key) === socket.id) {
-          delete io.users(key);
+          io.users.delete(key);
         }
       }
     });

@@ -61,7 +61,7 @@ module.exports = async () => {
     id INTEGER PRIMARY KEY AUTO_INCREMENT,
     tableName VARCHAR(16) NOT NULL,
     itemId INTEGER UNIQUE NOT NULL,
-    toUserEmail VARCHAR(32) NOT NULL,
+    toEmail VARCHAR(32) NOT NULL,
     createdAt TIMESTAMP NOT NULL DEFAULT NOW()
   )`);
 

@@ -22,20 +22,23 @@ module.exports = ({ io }) => {
       middleware: [verifyUserToken],
 
       async function(req, res) {
-        const lastId = req.query.lastId || 0;
+        // 999999 because thats assuming no more than 999999 elements in notifications array
+        const lastId = req.query.lastId || 999999;
 
         const [notifications] = await mysql.exec(
-          `SELECT * FROM notifications WHERE id > ? AND toUserEmail = ? LIMIT 10`,
-          [lastId, req.user.userAccount.email]
+          `SELECT * FROM notifications WHERE id < ? AND toEmail = ? ORDER BY createdAt DESC LIMIT 10`,
+          [lastId, "a@a.com"]
         );
+
+        console.log(notifications);
 
         const items = [];
         for (const notification of notifications) {
           const { tableName, itemId } = notification;
-          const [i] = await mysql.exec("SELECT * FROM ? WHERE id = ?", [
-            tableName,
-            itemId
-          ]);
+          const [i] = await mysql.exec(
+            `SELECT * FROM ${tableName} WHERE id = ?`,
+            [itemId]
+          );
           items.push(i[0]);
         }
 
