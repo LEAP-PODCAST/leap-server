@@ -16,7 +16,7 @@ module.exports = class {
   async sendNotification(userId, type, payload) {
     const socketId = this.io.users.get(userId);
     if (!socketId) return;
-    io.to(socketId).emit(`notification/${type}`, payload);
+    this.io.to(socketId).emit(`notification/${type}`, payload);
   }
 
   async inviteUserAsRoleOnPodcast({
@@ -164,7 +164,7 @@ module.exports = class {
       `INSERT INTO general_notifications (
       text,
       unread
-    ) VALUES (?, ?, ?)`,
+    ) VALUES (?, ?)`,
       [text, true]
     );
     if (!result || !result.insertId) {
@@ -178,7 +178,7 @@ module.exports = class {
       `INSERT INTO notifications (
         tableName,
         itemId,
-        toUserEmail
+        toEmail
       ) VALUES (?, ?, ?)`,
       ["general_notifications", result.insertId, user.email]
     );
