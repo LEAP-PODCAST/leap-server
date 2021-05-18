@@ -159,6 +159,15 @@ module.exports = ({ io }) => {
           };
         }
 
+        // Add user to io users store if socket is conntected
+        // We're doing this here rather than in the middleware because this allows
+        // us to still run signUp and logIn routes directly without having to also
+        // connecting to the front-end (eg: postman)
+        const socketCheckResult = verifySocketId(req, res);
+        if (socketCheckResult.ok) {
+          io.users.set(result.insertId, req.socket.id);
+        }
+
         const [userProfiles] = await mysql.getUserProfiles(
           "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
           [result.insertId]
@@ -335,6 +344,15 @@ module.exports = ({ io }) => {
         }
 
         const userProfile = userProfiles[0];
+
+        // Add user to io users store if socket is conntected
+        // We're doing this here rather than in the middleware because this allows
+        // us to still run signUp and logIn routes directly without having to also
+        // connecting to the front-end (eg: postman)
+        const socketCheckResult = verifySocketId(req, res);
+        if (socketCheckResult.ok) {
+          io.users.set(userAccount.profileId, req.socket.id);
+        }
 
         // Create JWT auth token
         const data = {
