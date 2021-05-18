@@ -29,8 +29,6 @@ module.exports = ({ io }) => {
           [lastId, req.user.userAccount.email]
         );
 
-        console.log(notifications);
-
         const items = [];
         for (const notification of notifications) {
           const { tableName, itemId } = notification;
@@ -38,7 +36,36 @@ module.exports = ({ io }) => {
             `SELECT * FROM ${tableName} WHERE id = ?`,
             [itemId]
           );
-          items.push(i[0]);
+          if (!i.length) {
+            consola.error(
+              `No ${tableName} item found corresponding to notification id ${notification.id}`
+            );
+            continue;
+          }
+
+          const item = {
+            ...i[0]
+          };
+
+          if (item.podcastId) {
+            const [podcasts] = await mysql.exec(
+              "SELECT * FROM podcasts WHERE id = ?",
+              [item.podcastId]
+            );
+            if (!podcasts.length) {
+              consola.error(
+                `No podcast found by id ${item.podcastId} corresponding to invite id ${itemId}`
+              );
+              continue;
+            }
+
+            item.podcast = podcasts[0];
+          }
+
+          items.push({
+            type: tableName,
+            value: item
+          });
         }
 
         return {
