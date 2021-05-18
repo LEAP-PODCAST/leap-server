@@ -29,7 +29,6 @@ async function getNotificationItem(notification) {
 
     item.podcast = podcasts[0];
   }
-  console.log(item);
 
   return item;
 }
