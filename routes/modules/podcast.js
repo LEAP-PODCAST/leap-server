@@ -107,21 +107,46 @@ module.exports = ({ io }) => {
           };
         }
 
-        // Add podcast to hosts podcasts array
-        for (const hostProfile of hostProfiles) {
-          const podcastIds = hostProfile.podcasts.map(p => p.id);
-          podcastIds.push(result.insertId);
+        // Add podcast to creators profile
+        const [result2] = await mysql.exec(
+          `UPDATE user_profiles SET podcasts = ? WHERE id = ?`,
+          [
+            [
+              result.insertId,
+              ...hostProfiles[0].podcasts.map(({ id }) => id)
+            ].toString(),
+            hostProfiles[0].id
+          ]
+        );
+        if (!result2) {
+          return {
+            error: "An error occurred adding this podcast to host user",
+            status: 500
+          };
+        }
 
-          const [result2] = await mysql.exec(
-            `UPDATE user_profiles SET podcasts = ? WHERE id = ?`,
-            [podcastIds.toString(), hostProfile.id]
+        // Invite other users to host podcast
+        for (let i = 1; i < hostProfiles.length; i++) {
+          const hostProfile = hostProfiles[i];
+
+          // Get host account email
+          const [userAccounts] = await mysql.exec(
+            "SELECT email FROM user_accounts WHERE profileId = ? LIMIT 1",
+            [hostProfile.id]
           );
-          if (!result2) {
-            return {
-              error: "An error occurred adding this podcast to host user",
-              status: 500
-            };
-          }
+
+          NotificationService.inviteUserAsRoleOnPodcast({
+            fromUser: userProfiles[0],
+            toUser: hostProfile,
+            toEmail: userAccounts[0].email,
+            role: "host",
+            podcast: {
+              id: result.insertId,
+              name,
+              hostIds,
+              description
+            }
+          });
         }
 
         // Email users who are not on leap to join with a temporary account
@@ -141,7 +166,7 @@ module.exports = ({ io }) => {
             from: "support@joinleap.co"
           });
 
-          const [result2] = await mysql.exec(
+          await mysql.exec(
             `INSERT INTO email_invites (
             email,
             podcastId
@@ -151,7 +176,7 @@ module.exports = ({ io }) => {
         }
 
         // Create table for episodes
-        const [result2] =
+        const [result3] =
           await mysql.exec(`CREATE TABLE IF NOT EXISTS podcast_${result.insertId}_episodes (
           id INTEGER PRIMARY KEY AUTO_INCREMENT,
           podcastId INTEGER NOT NULL,
@@ -165,7 +190,7 @@ module.exports = ({ io }) => {
           isLive BOOL NOT NULL
         )`);
 
-        if (!result2) {
+        if (!result3) {
           consola.error(
             "There was an error creating the podcast_episodes table"
           );
@@ -179,7 +204,8 @@ module.exports = ({ io }) => {
           data: {
             id: result.insertId,
             name,
-            hostIds
+            hosts: hostProfiles,
+            description
           }
         };
       }

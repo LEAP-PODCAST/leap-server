@@ -21,6 +21,9 @@ module.exports = async ({ io }) => {
     return room ? room.length : 0;
   };
 
+  // Users store
+  io.users = new Map();
+
   // On a new viewer connection
   io.on("connection", socket => {
     // Add object to socket for holding related producer ids
@@ -205,6 +208,13 @@ module.exports = async ({ io }) => {
       if (!socketCount) {
         await Router.close(socket.roomId);
         rooms.delete(socket.roomId);
+      }
+
+      // Remove self from global users
+      for (const key of Array.from(io.users.keys())) {
+        if (io.users.get(key) === socket.id) {
+          io.users.delete(key);
+        }
       }
     });
   });
