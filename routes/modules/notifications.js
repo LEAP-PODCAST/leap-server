@@ -1,11 +1,96 @@
 const ExpressRoute = require("../ExpressRoute.js");
 
+async function getNotificationItem(notification) {
+  const { tableName, itemId } = notification;
+  const [i] = await mysql.exec(`SELECT * FROM ${tableName} WHERE id = ?`, [
+    itemId
+  ]);
+  if (!i.length) {
+    consola.error(
+      `No ${tableName} item found corresponding to notification id ${notification.id}`
+    );
+    return;
+  }
+
+  const item = {
+    ...i[0]
+  };
+
+  if (item.podcastId) {
+    const [podcasts] = await mysql.exec("SELECT * FROM podcasts WHERE id = ?", [
+      item.podcastId
+    ]);
+    if (!podcasts.length) {
+      consola.error(
+        `No podcast found by id ${item.podcastId} corresponding to invite id ${itemId}`
+      );
+      return;
+    }
+
+    item.podcast = podcasts[0];
+  }
+  console.log(item);
+
+  return item;
+}
+
 module.exports = ({ io }) => {
   const { verifyUserToken } = require("../middleware")({ io });
 
   return {
+    getOne: new ExpressRoute({
+      type: "GET",
+
+      model: {
+        query: {
+          id: {
+            type: "number",
+            required: true
+          }
+        }
+      },
+
+      middleware: [verifyUserToken],
+
+      async function(req, res) {
+        const { id } = req.query;
+
+        // Get notification by id and if emails match
+        const [notifications] = await mysql.exec(
+          "SELECT * FROM notifications WHERE id = ? AND toEmail = ?",
+          [id, req.user.userAccount.email]
+        );
+        if (!notifications.length) {
+          return {
+            error:
+              "That notification does not exist or you don't have permission to view it",
+            status: 400
+          };
+        }
+
+        const notification = notifications[0];
+
+        // Get the notification item
+        const item = await getNotificationItem(notification);
+        if (!item) {
+          return {
+            error: `No notification item of type ${notification.tableName} found for notification id ${id}`,
+            status: 500
+          };
+        }
+
+        return {
+          ok: true,
+          data: {
+            type: notification.tableName,
+            value: item
+          }
+        };
+      }
+    }),
+
     /**
-     * Get all notifcations of all types
+     * Get all notifications of all types
      */
     getAll: new ExpressRoute({
       type: "GET",
@@ -31,39 +116,10 @@ module.exports = ({ io }) => {
 
         const items = [];
         for (const notification of notifications) {
-          const { tableName, itemId } = notification;
-          const [i] = await mysql.exec(
-            `SELECT * FROM ${tableName} WHERE id = ?`,
-            [itemId]
-          );
-          if (!i.length) {
-            consola.error(
-              `No ${tableName} item found corresponding to notification id ${notification.id}`
-            );
-            continue;
-          }
-
-          const item = {
-            ...i[0]
-          };
-
-          if (item.podcastId) {
-            const [podcasts] = await mysql.exec(
-              "SELECT * FROM podcasts WHERE id = ?",
-              [item.podcastId]
-            );
-            if (!podcasts.length) {
-              consola.error(
-                `No podcast found by id ${item.podcastId} corresponding to invite id ${itemId}`
-              );
-              continue;
-            }
-
-            item.podcast = podcasts[0];
-          }
-
+          const item = await getNotificationItem(notification);
+          if (!item) continue;
           items.push({
-            type: tableName,
+            type: notification.tableName,
             value: item
           });
         }

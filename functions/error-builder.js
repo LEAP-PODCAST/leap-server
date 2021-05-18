@@ -34,6 +34,17 @@ function validateParams(model, params, nestedText) {
       }
     }
 
+    // If expecting number/int and query, everything in query is string, check if isNaN
+    if (
+      nestedText === "query" &&
+      ["number", "integer"].includes(property.type)
+    ) {
+      // If can't be converted to a number, it's probably not a number and is invalid type
+      if (isNaN(param)) {
+        return { error: `${prop} is not a valid ${property.type} type` };
+      }
+    }
+
     // If incorrect type
     else if (typeof param !== property.type) {
       return {
