@@ -45,8 +45,6 @@ module.exports = class {
       };
     }
 
-    console.log(fromUser.id, toEmail, role, podcast.id);
-
     // Add notification to database
     const [result] = await mysql.exec(
       `INSERT INTO invites (
@@ -78,12 +76,7 @@ module.exports = class {
     }
 
     // Send them a notification
-    this.sendNotification(toUser.id, "podcastInvite", {
-      id: result.insertId,
-      fromName: `${fromUser.firstName} ${fromUser.lastName}`,
-      podcastName: podcast.name,
-      role
-    });
+    this.sendNotification(toUser.id, "podcastInvite", result2.insertId);
   }
 
   async inviteUserAsRoleOnEpisode({
@@ -144,13 +137,7 @@ module.exports = class {
     }
 
     // Send them a notification
-    this.sendNotification(toUser.id, "episodeInvite", {
-      id: result.insertId,
-      fromName: `${fromUser.firstName} ${fromUser.lastName}`,
-      podcastName: podcast.name,
-      episodeName: episode.name,
-      role
-    });
+    this.sendNotification(toUser.id, "episodeInvite", result2.insertId);
   }
 
   /**
@@ -183,6 +170,6 @@ module.exports = class {
       ["general_notifications", result.insertId, user.email]
     );
 
-    this.sendNotification(user.id, "text", { text });
+    this.sendNotification(user.id, "text", result2.insertId);
   }
 };
