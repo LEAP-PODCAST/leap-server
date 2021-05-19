@@ -41,10 +41,10 @@ module.exports = ({ io }) => {
       async function(req, res) {
         const { name, hosts, description } = req.body;
 
-        const hostIds = [];
+        const hostIds = [req.user.userAccount.profileId];
         const hostProfiles = [];
 
-        // Add creator to array
+        // Get the creators user profile
         const [userProfiles] = await mysql.getUserProfiles(
           "SELECT * FROM user_profiles WHERE id = ? LIMIT 1",
           [req.user.userAccount.profileId]
@@ -56,6 +56,7 @@ module.exports = ({ io }) => {
           };
         }
 
+        // Add creator to hosts array
         hosts.unshift({
           type: "user",
           ...userProfiles[0]
@@ -75,7 +76,6 @@ module.exports = ({ io }) => {
           }
 
           hostProfiles.push(selectedHosts[0]);
-          hostIds.push(selectedHosts[0].id);
         }
 
         // Check if podcast with name already exists
@@ -204,7 +204,7 @@ module.exports = ({ io }) => {
           data: {
             id: result.insertId,
             name,
-            hosts: hostProfiles,
+            hosts: [...hostProfiles[0]],
             description
           }
         };
@@ -236,6 +236,102 @@ module.exports = ({ io }) => {
         );
 
         return { ok: true, data: podcasts };
+      }
+    }),
+
+    /**
+     * Get podcast update form data
+     */
+    getUpdateForm: new ExpressRoute({
+      type: "GET",
+
+      model: {
+        query: {
+          podcastId: {
+            type: "number",
+            required: true
+          }
+        }
+      },
+
+      middleware: [
+        verifyUserToken,
+        verifyPodcastExists,
+        verifyUserIsHostOfPodcast
+      ],
+
+      async function(req, res) {
+        const { podcastId } = req.query;
+
+        const hosts = [];
+
+        // Loop through podcast users and add them to the editable hosts array
+        for (const profileId of req.podcast.hosts.split(",")) {
+          const [userProfiles] = await mysql.exec(
+            "SELECT username, fullUsername, avatarUrl, id FROM user_profiles WHERE id = ?",
+            [profileId]
+          );
+          if (!userProfiles.length) {
+            consola.error(`No user profile found by id ${profileId}`);
+            continue;
+          }
+
+          hosts.push({
+            type: "user",
+            ...userProfiles[0]
+          });
+        }
+
+        // Get users invited by podcastId
+        const [invites] = await mysql.exec(
+          "SELECT * FROM invites WHERE podcastId = ?",
+          [podcastId]
+        );
+
+        // Look through each invite to get corresponding notification
+        for (let i = 0; i < invites.length; i++) {
+          const invite = invites[i];
+
+          const [notifications] = await mysql.exec(
+            "SELECT id, toEmail FROM notifications WHERE tableName = 'invites' AND itemId = ?",
+            [invite.id]
+          );
+
+          // Select user object if user exists (if not, this may be an invite for a user who
+          // has not signed up for leap yet)
+          const [userAccounts] = await mysql.exec(
+            "SELECT * FROM user_accounts WHERE email = ?",
+            [notifications[0].toEmail]
+          );
+
+          // If a user account belongs to this notifications (user is signed up)
+          if (userAccounts.length) {
+            const [userProfiles] = await mysql.exec(
+              "SELECT username, fullUsername, avatarUrl, id FROM user_profiles WHERE id = ?",
+              [userAccounts[0].profileId]
+            );
+
+            invites[i] = {
+              type: "user",
+              ...userProfiles[0],
+              email: notifications[0].toEmail
+            };
+          } else {
+            invites[i] = {
+              type: "email",
+              email: notifications[0].toEmail
+            };
+          }
+        }
+
+        return {
+          ok: true,
+          data: {
+            ...req.podcast,
+            hosts,
+            invites
+          }
+        };
       }
     }),
 

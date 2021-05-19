@@ -103,7 +103,7 @@ module.exports = ({ io }) => ({
    * @param {Response} res
    */
   async verifyPodcastExists(req, res) {
-    const { podcastId } = req.body;
+    const podcastId = req.body.podcastId || req.query.podcastId;
 
     if (!podcastId) {
       return { error: "No podcastId provided", status: 400 };
@@ -166,11 +166,10 @@ module.exports = ({ io }) => ({
       return { error: "No episodeId provided", status: 400 };
     }
 
-    const [
-      episodes
-    ] = await mysql.exec("SELECT * FROM scheduled_podcast WHERE id = ?", [
-      episodeId
-    ]);
+    const [episodes] = await mysql.exec(
+      "SELECT * FROM scheduled_podcast WHERE id = ?",
+      [episodeId]
+    );
     if (!episodes.length) {
       return { error: "No scheduled episode found by that id", status: 400 };
     }
@@ -195,9 +194,7 @@ module.exports = ({ io }) => ({
       return { error: "No podcast attached to request object", stats: 400 };
     }
 
-    const [
-      episodes
-    ] = await mysql.exec(
+    const [episodes] = await mysql.exec(
       `SELECT * FROM podcast_${podcastId}_episodes WHERE id = ?`,
       [episodeId]
     );
