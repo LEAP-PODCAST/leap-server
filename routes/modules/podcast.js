@@ -343,9 +343,6 @@ module.exports = ({ io }) => {
 
       model: {
         body: {
-          hosts: {
-            type: "array"
-          },
           name: {
             type: "string",
             maxLength: 64
@@ -371,14 +368,158 @@ module.exports = ({ io }) => {
 
         const updates = {};
 
-        const hostIds = [];
-        const hostProfiles = [];
-
         // Get only the keys you can update to filter out any junk
         for (const key of Object.keys(req.body)) {
           // If we are cool with accepting this updated value
           if (keysToLookFor.includes(key)) {
-            // Custom handler for social
+            updates[key] = req.body[key];
+          }
+        }
+
+        const keys = Object.keys(updates);
+        if (!keys.length) {
+          return { error: "No updates provided", status: 400 };
+        }
+
+        // Add podcast to hosts podcasts array
+        for (const hostProfile of hostProfiles) {
+          const podcastIds = hostProfile.podcasts.map(p => p.id);
+
+          // Verify they don't already have that podcastId on their profile
+          if (podcastIds.includes(req.podcast.id)) {
+            continue;
+          }
+          podcastIds.push(req.podcast.id);
+
+          const [result2] = await mysql.exec(
+            `UPDATE user_profiles SET podcasts = ? WHERE id = ?`,
+            [podcastIds.toString(), hostProfile.id]
+          );
+          if (!result2) {
+            return {
+              error: "An error occurred adding this podcast to host user",
+              status: 500
+            };
+          }
+        }
+
+        // Create sql update string
+        const update = keys.join(" = ?, ") + " = ?";
+        const values = keys.map(k => updates[k]);
+
+        const [result] = await mysql.exec(
+          `UPDATE podcasts SET ${update} WHERE id = ?`,
+          [...values, podcast.id]
+        );
+        // If did not update
+        if (result.affectedRows < 1) {
+          return {
+            error: "An error occurred while updated your profile",
+            status: 500
+          };
+        }
+
+        // Get the podcast
+        const [podcasts] = await mysql.getPodcasts(
+          "SELECT * FROM podcasts WHERE id = ? LIMIT 1",
+          [podcast.id]
+        );
+        if (!podcasts.length) {
+          return {
+            error: `No podcast found by id ${podcast.id}`,
+            status: 500
+          };
+        }
+
+        return {
+          ok: true,
+          data: podcasts[0]
+        };
+      }
+    }),
+
+    // inviteUser: new ExpressRoute(),
+
+    // cancelInvite: new ExpressRoute(),
+
+    removeHost: new ExpressRoute({
+      type: "PUT",
+
+      model: {
+        body: {
+          hostId: {
+            type: "number",
+            required: true
+          }
+        }
+      },
+
+      middleware: [
+        verifyUserToken,
+        verifyPodcastExists,
+        verifyUserIsHostOfPodcast
+      ],
+
+      async function(req, res) {
+        const { hostId } = req.body;
+
+        // Check if user profile exists by id
+        const [userProfiles] = await mysql.exec(
+          "SELECT * FROM user_profiles WHERE id = ?",
+          [hostId]
+        );
+        if (!userProfiles.length) {
+          return {
+            error: `Could not find user profile by host id ${hostId}`,
+            status: 400
+          };
+        }
+
+        const hostProfile = userProfiles[0];
+
+        // Check if user is in podcast
+        const { podcast } = req;
+        podcast.hosts = podcast.hosts.split(",");
+        const index = podcast.hosts.indexOf(`${hostId}`);
+        if (index === -1) {
+          return {
+            error: `${hostProfile.fullUsername} is not a host of podcast ${podcast.name}`,
+            status: 400
+          };
+        }
+
+        // Remove from podcast
+        podcast.hosts.splice(index, 1);
+        const [result] = await mysql.exec(
+          "UPDATE podcasts SET hosts = ? WHERE id = ?",
+          [podcast.hosts.toString(), podcast.id]
+        );
+
+        // Remove podcast from users profile
+        hostProfile.podcasts = hostProfile.podcasts.split(",");
+        const index2 = hostProfile.podcasts.indexOf(`${podcast.id}`);
+        if (index2 === -1) {
+          consola.error(
+            `${podcast.id} was not found on users profile podcasts array`
+          );
+        } else {
+          hostProfile.podcasts.splice(index2);
+          const [result2] = await mysql.exec(
+            "UPDATE user_profiles SET podcasts = ? WHERE id = ?",
+            [hostProfile.podcasts.toString(), hostId]
+          );
+        }
+
+        // TODO Fire an event that user was revoked access (in case of live episode, kick them from room)
+
+        return {
+          ok: true
+        };
+      }
+    }),
+
+    /**
+     * // Custom handler for social
             if (key === "hosts") {
               const { hosts } = req.body;
 
@@ -419,38 +560,8 @@ module.exports = ({ io }) => {
               updates[key] = hostIds.toString();
               continue;
             }
-            updates[key] = req.body[key];
-          }
-        }
 
-        const keys = Object.keys(updates);
-        if (!keys.length) {
-          return { error: "No updates provided", status: 400 };
-        }
-
-        // Add podcast to hosts podcasts array
-        for (const hostProfile of hostProfiles) {
-          const podcastIds = hostProfile.podcasts.map(p => p.id);
-
-          // Verify they don't already have that podcastId on their profile
-          if (podcastIds.includes(req.podcast.id)) {
-            continue;
-          }
-          podcastIds.push(req.podcast.id);
-
-          const [result2] = await mysql.exec(
-            `UPDATE user_profiles SET podcasts = ? WHERE id = ?`,
-            [podcastIds.toString(), hostProfile.id]
-          );
-          if (!result2) {
-            return {
-              error: "An error occurred adding this podcast to host user",
-              status: 500
-            };
-          }
-        }
-
-        // Get array of users who were in old but not new
+            // Get array of users who were in old but not new
         const removedIds = podcast.hosts
           .split(",")
           .map(v => parseInt(v))
@@ -483,41 +594,7 @@ module.exports = ({ io }) => {
             };
           }
         }
-
-        // Create sql update string
-        const update = keys.join(" = ?, ") + " = ?";
-        const values = keys.map(k => updates[k]);
-
-        const [result] = await mysql.exec(
-          `UPDATE podcasts SET ${update} WHERE id = ?`,
-          [...values, podcast.id]
-        );
-        // If did not update
-        if (result.affectedRows < 1) {
-          return {
-            error: "An error occurred while updated your profile",
-            status: 500
-          };
-        }
-
-        // Get the podcast
-        const [podcasts] = await mysql.getPodcasts(
-          "SELECT * FROM podcasts WHERE id = ? LIMIT 1",
-          [podcast.id]
-        );
-        if (!podcasts.length) {
-          return {
-            error: `No podcast found by id ${podcast.id}`,
-            status: 500
-          };
-        }
-
-        return {
-          ok: true,
-          data: podcasts[0]
-        };
-      }
-    }),
+     */
 
     /**
      * Schedule a new podcast episode
