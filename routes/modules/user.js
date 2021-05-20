@@ -104,7 +104,7 @@ module.exports = ({ io }) => {
         const lowerEmail = email.toLowerCase();
 
         // Verify that the username is not taken
-        var [users] = await mysql.getUserProfiles(
+        var [users] = await mysql.exec(
           "SELECT id FROM user_profiles WHERE username = ? LIMIT 1",
           [lowerUsername]
         );
