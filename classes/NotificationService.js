@@ -67,7 +67,7 @@ module.exports = class {
       itemId,
       toEmail
     ) VALUES (?, ?, ?)`,
-      ["invites", result.insertId, toEmail]
+      ["invites", result.insertId, toEmail || users[0].email]
     );
 
     // Check if user accepts emails
@@ -77,6 +77,8 @@ module.exports = class {
 
     // Send them a notification
     this.sendNotification(toUser.id, "podcastInvite", result2.insertId);
+
+    return { ok: true };
   }
 
   async inviteUserAsRoleOnEpisode({

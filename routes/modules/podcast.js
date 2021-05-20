@@ -438,7 +438,116 @@ module.exports = ({ io }) => {
       }
     }),
 
-    // inviteUser: new ExpressRoute(),
+    inviteUser: new ExpressRoute({
+      type: "PUT",
+
+      model: {
+        body: {
+          invitedEmail: {
+            type: "string",
+            validator: email => ({
+              isValid: regex.email.test(email),
+              error: "The invitedEmail is not a valid email"
+            })
+          },
+          invitedId: {
+            type: "number"
+          }
+        }
+      },
+
+      middleware: [
+        verifyUserToken,
+        verifyPodcastExists,
+        verifyUserIsHostOfPodcast
+      ],
+
+      async function(req, res) {
+        let { invitedEmail, invitedId } = req.body;
+        invitedEmail = invitedEmail.toLowerCase();
+
+        const params = {};
+
+        // If inviting by email
+        if (invitedEmail) {
+          // Check if a user exists by that email
+          const [userAccounts] = await mysql.exec(
+            "SELECT * FROM user_accounts WHERE email = ?",
+            [invitedEmail]
+          );
+
+          const user = userAccounts[0];
+
+          // If on Leap
+          if (!user) {
+            const [userProfiles] = await mysql.exec(
+              "SELECT * FROM user_profiles WHERE id = ?",
+              [user.profileId]
+            );
+            if (!userProfiles.length) {
+              return {
+                error: `No user profile found by id ${user.profileId}`,
+                status: 500
+              };
+            }
+
+            params.toUser = userProfiles[0];
+          }
+
+          params.toEmail = invitedEmail;
+        }
+
+        // If inviting by user id
+        else if (invitedId) {
+          const [userProfiles] = await mysql.exec(
+            "SELECT * FROM user_profiles WHERE id = ?",
+            [invitedId]
+          );
+          if (!userProfiles.length) {
+            return {
+              error: `No user profile found by id ${invitedId}`,
+              status: 400
+            };
+          }
+
+          params.toUser = userProfiles[0];
+        }
+
+        // If user passed neither email or id
+        else {
+          return {
+            error: "No body.invitedEmail or body.invitedId provided",
+            status: 400
+          };
+        }
+
+        // Get inviter profile (requester)
+        const [userProfiles] = await mysql.exec(
+          "SELECT * FROM user_profiles WHERE id = ?",
+          [req.user.userAccount.profileId]
+        );
+        if (!userProfiles.length) {
+          return {
+            error: `No user profile found for user id ${req.user.userAccount.profileId}`,
+            status: 500
+          };
+        }
+
+        params.fromUser = userProfiles[0];
+        params.role = "host";
+        params.podcast = req.podcast;
+
+        const { ok, error, status } =
+          NotificationService.inviteUserAsRoleOnPodcast(params);
+        if (!ok) {
+          return { error, status };
+        }
+
+        return {
+          ok: true
+        };
+      }
+    }),
 
     // cancelInvite: new ExpressRoute(),
 
