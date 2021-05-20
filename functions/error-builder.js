@@ -35,7 +35,7 @@ function validateParams(model, params, nestedText) {
     }
 
     // If expecting number/int and query, everything in query is string, check if isNaN
-    if (
+    else if (
       nestedText === "query" &&
       ["number", "integer"].includes(property.type)
     ) {
