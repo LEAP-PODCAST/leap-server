@@ -81,6 +81,7 @@ module.exports = ({ io }) => {
         return {
           ok: true,
           data: {
+            id: notification.id,
             type: notification.tableName,
             value: item
           }
@@ -118,6 +119,7 @@ module.exports = ({ io }) => {
           const item = await getNotificationItem(notification);
           if (!item) continue;
           items.push({
+            id: notification.id,
             type: notification.tableName,
             value: item
           });
