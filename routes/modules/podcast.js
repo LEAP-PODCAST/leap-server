@@ -593,7 +593,7 @@ module.exports = ({ io }) => {
         await mysql.exec("DELETE FROM invites WHERE id = ?", [inviteId]);
 
         return {
-          ok: true.
+          ok: true
         };
       }
     }),
