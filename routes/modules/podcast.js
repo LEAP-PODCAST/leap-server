@@ -551,9 +551,52 @@ module.exports = ({ io }) => {
       }
     }),
 
-    // cancelInvite: new ExpressRoute({
-    //   type: "PUT"
-    // }),
+    cancelInvite: new ExpressRoute({
+      type: "PUT",
+
+      model: {
+        body: {
+          inviteId: {
+            type: "number",
+            required: true
+          }
+        }
+      },
+
+      middleware: [
+        verifyUserToken,
+        verifyPodcastExists,
+        verifyUserIsHostOfPodcast
+      ],
+
+      async function(req, res) {
+        const { inviteId } = req.body;
+
+        // Check if an invite exists by that ID and podcast ID
+        const [invites] = await mysql.exec(
+          "SELECT * FROM invites WHERE id = ? AND podcastId = ?",
+          [inviteId, req.podcast.id]
+        );
+        if (!invites.length) {
+          return {
+            error: `No invite found by id ${inviteId} and for podcast ${req.podcast.id}`
+          };
+        }
+
+        // Delete the notification by itemId
+        await mysql.exec(
+          "DELETE FROM notifications WHERE tableName = 'invites' AND itemId = ?",
+          [inviteId]
+        );
+
+        // Delete the invite by id
+        await mysql.exec("DELETE FROM invites WHERE id = ?", [inviteId]);
+
+        return {
+          ok: true.
+        };
+      }
+    }),
 
     removeHost: new ExpressRoute({
       type: "PUT",
