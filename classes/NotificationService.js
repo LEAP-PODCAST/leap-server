@@ -16,7 +16,10 @@ module.exports = class {
   async sendNotification(userId, type, payload) {
     const socketId = this.io.users.get(userId);
     if (!socketId) return;
-    this.io.to(socketId).emit(`notification/${type}`, payload);
+    this.io.to(socketId).emit("notification", {
+      ...payload,
+      type
+    });
   }
 
   async inviteUserAsRoleOnPodcast({
@@ -76,7 +79,12 @@ module.exports = class {
     }
 
     // Send them a notification
-    this.sendNotification(toUser.id, "podcastInvite", result2.insertId);
+    this.sendNotification(toUser.id, "podcast-invite", {
+      id: result.insertId,
+      role,
+      podcast,
+      fromUser
+    });
 
     return { ok: true };
   }
@@ -139,7 +147,7 @@ module.exports = class {
     }
 
     // Send them a notification
-    this.sendNotification(toUser.id, "episodeInvite", result2.insertId);
+    this.sendNotification(toUser.id, "episode-invite", result2.insertId);
   }
 
   /**
@@ -172,6 +180,9 @@ module.exports = class {
       ["general_notifications", result.insertId, user.email]
     );
 
-    this.sendNotification(user.id, "text", result2.insertId);
+    this.sendNotification(user.id, "text", {
+      id: result.insertId,
+      text
+    });
   }
 };
