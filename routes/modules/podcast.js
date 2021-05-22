@@ -305,23 +305,25 @@ module.exports = ({ io }) => {
           );
 
           // If a user account belongs to this notifications (user is signed up)
+          let userProfile = {
+            email: notifications[0].toEmail
+          };
+
           if (userAccounts.length) {
             const [userProfiles] = await mysql.exec(
-              "SELECT username, fullUsername, avatarUrl, id FROM user_profiles WHERE id = ?",
+              "SELECT id, firstName, lastName, username, fullUsername, avatarUrl FROM user_profiles WHERE id = ?",
               [userAccounts[0].profileId]
             );
 
-            invites[i] = {
-              type: "user",
-              ...userProfiles[0],
-              email: notifications[0].toEmail
-            };
-          } else {
-            invites[i] = {
-              type: "email",
-              email: notifications[0].toEmail
-            };
+            if (userProfiles.length) {
+              userProfile = {
+                ...userProfile,
+                ...userProfiles[0]
+              };
+            }
           }
+
+          invites[i].userProfile = userProfile;
         }
 
         return {
@@ -549,7 +551,9 @@ module.exports = ({ io }) => {
       }
     }),
 
-    // cancelInvite: new ExpressRoute(),
+    // cancelInvite: new ExpressRoute({
+    //   type: "PUT"
+    // }),
 
     removeHost: new ExpressRoute({
       type: "PUT",
